@@ -25,7 +25,7 @@ SIZE =		size
 # LAMMPS ifdef settings, OPTIONAL
 # see possible settings in doc/Section_start.html#2_2 (step 4)
 
-LMP_INC =	-DLAMMPS_GZIP -DLAMMPS_VTK
+LMP_INC =	-DLAMMPS_GZIP -DLAMMPS_VTK	-DLAMMPS_JPEG
 
 # MPI library, REQUIRED
 # see discussion in doc/Section_start.html#2_2 (step 5)
@@ -56,16 +56,16 @@ FFT_LIB =
 # PATH = path for JPEG library
 # LIB = name of JPEG library
 
-JPG_INC =       
+JPG_INC =       -I/usr/include
 JPG_PATH = 	
-JPG_LIB =	
+JPG_LIB =	-ljpeg
 
 # VTK library, OPTIONAL
 # INC = path for VTK header files
 # PATH = path for VTK library
 # LIB = name of VTK library
 
-VTK_INC = -I/usr/include/vtk-5.2 -I/usr/include/eigen2
+VTK_INC = -I/usr/include/vtk-5.8 -I/usr/include/eigen2
 VTK_PATH = 
 VTK_LIB = -lvtkCommon -lvtkHybrid -lvtkFiltering -lvtkRendering -lvtkIO -lvtkexoIIc -lvtkParallel -lvtkGraphics -lvtkverdict -lvtkImaging -lvtkftgl -lvtkDICOMParser -lvtkmetaio
 
