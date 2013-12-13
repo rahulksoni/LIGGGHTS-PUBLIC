@@ -79,7 +79,7 @@ class FixBreakparticleForce : public FixInsert
   double **breakdata;
 
   //need non-virtual function for parent class
-  double insertion_fraction();
+  void calc_ins_fraction();
 };
 
 }
