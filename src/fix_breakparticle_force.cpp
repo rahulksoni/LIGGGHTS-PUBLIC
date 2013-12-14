@@ -38,8 +38,8 @@ See the README file in the top-level LAMMPS directory.
 #include "fix_template_multiplespheres.h"
 #include "particleToInsert.h"
 
-
 using namespace LAMMPS_NS;
+using namespace FixConst; //needed for END_OF_STEP
 
 /* ---------------------------------------------------------------------- */
 
@@ -183,14 +183,15 @@ void FixBreakparticleForce::calc_insertion_properties()
 }
 
 /* ---------------------------------------------------------------------- */
-/*
+//this is needed to set the end-of-step function into the pipeline,
+//END_OF_STEP is defined in namespace FixConst, so I added it above !
 int FixBreakparticleForce::setmask()
 {
     int mask = FixInsert::setmask();
     mask |= END_OF_STEP;
     return mask;
 }
-*/
+
 /* ---------------------------------------------------------------------- */
 
 inline int FixBreakparticleForce::is_nearby(int i)
@@ -394,5 +395,11 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
   LAMMPS_NS::MPI_Sum_Scalar(mass_inserted_this_local,mass_inserted_this,world);
     
    
+}
 
+//not sure if we realy need this function, however it needs to be a function with this name here for the parent class fix-instert
+double FixBreakparticleForce::insertion_fraction()
+{
+    
+    return volumefraction;
 }
