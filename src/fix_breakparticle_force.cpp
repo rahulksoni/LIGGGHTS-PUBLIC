@@ -34,21 +34,9 @@ See the README file in the top-level LAMMPS directory.
 #include "memory.h"
 #include "error.h"
 #include "fix_property_atom.h"
-<<<<<<< HEAD
-<<<<<<< HEAD
 #include "fix_particledistribution_discrete.h"			/**************/
 #include "fix_template_multiplespheres.h"				/************/
 #include "particleToInsert.h"							/************/
-=======
-#include "fix_particledistribution_discrete.h"
-#include "fix_template_multiplespheres.h"
-#include "particleToInsert.h"
->>>>>>> f672010c2ceb717c573186ac1cba9f340fa00056
-=======
-#include "fix_particledistribution_discrete.h"			/**************/
-#include "fix_template_multiplespheres.h"				/************/
-#include "particleToInsert.h"							/************/
->>>>>>> 177ff7b221ad559063dd8bb1249256f1abdf06f0
 
 using namespace LAMMPS_NS;
 using namespace FixConst; //needed for END_OF_STEP
