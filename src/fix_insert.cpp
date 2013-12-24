@@ -448,8 +448,8 @@ void FixInsert::init()
         error->fix_error(FLERR,this,"Can use fix insert for 3d simulations only");
     
     fix_multisphere = static_cast<FixMultisphere*>(modify->find_fix_style("multisphere", 0));
-    if(!fix_multisphere) multisphere = NULL;
-    else multisphere = &fix_multisphere->data();
+    if(!fix_multisphere) multisphere = NULL;		//if fix_multisphere not there then make and value NULL//
+    else multisphere = &fix_multisphere->data();		//Otherwise if fix_multisphere was there then assign its data to keyword multisphere//
 
     // in case of new fix insert in a restarted simulation, have to add current time-step
     if(next_reneighbor > 0 && next_reneighbor < ntimestep)

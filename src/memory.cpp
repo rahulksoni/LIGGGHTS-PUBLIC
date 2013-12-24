@@ -83,7 +83,7 @@ void Memory::sfree(void *ptr)
 }
 
 /* ----------------------------------------------------------------------
-   erroneous usage of templated create/grow functions
+   erroneous usage of templated createcreate/grow functions
 ------------------------------------------------------------------------- */
 
 void Memory::fail(const char *name)

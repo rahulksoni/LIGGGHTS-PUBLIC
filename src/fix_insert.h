@@ -153,7 +153,7 @@ class FixInsert : public Fix {
   virtual void print_stats_start();
   virtual void print_stats_during(int,double);
 
-  virtual void init_defaults();
+  virtual void init_defaults();            //comes from fix_insert.cpp//
   virtual void sanity_check();
   virtual void calc_insertion_properties() = 0;
 

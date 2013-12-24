@@ -27,12 +27,12 @@ FixStyle(breakparticle/force,FixBreakparticleForce)
 #ifndef LMP_FIX_BREAKPARTICLE_FORCE_H
 #define LMP_FIX_BREAKPARTICLE_FORCE_H
 
-#include "fix_insert.h"
+#include "fix_insert.h"						//Inclusion of fix_insert//
 
-namespace LAMMPS_NS 
+namespace LAMMPS_NS 				//I think modification of namespace LAMMPS_NS//
 {
 
-class FixBreakparticleForce : public FixInsert 
+class FixBreakparticleForce : public FixInsert 			//inclusion of public part of fix_insert//
 {
  public:
 
@@ -44,7 +44,7 @@ class FixBreakparticleForce : public FixInsert
 
   virtual int setmask();
   virtual void init();
-  void init_defaults();
+  void init_defaults();			//comes from fix_insert.cpp through fix_insert.h//
   int calc_ninsert_this();
   virtual void end_of_step();
 
@@ -61,10 +61,10 @@ class FixBreakparticleForce : public FixInsert
   void print_stats_breakage_during();
 
   // per breakage flag
-  class FixPropertyAtom *fix_break;
+  class FixPropertyAtom *fix_break;					/////////////Important///////////////fix_break will comtain atom properties//
 
   // template holding data of the fragments
-  class FixTemplateMultiplespheres *fix_fragments;
+  class FixTemplateMultiplespheres *fix_fragments;			/////////////Important///////////////fix_fragemnets will take care of particle disctribution in space//
 
   // force threshold and number of fragments per particle
   double f_break;
