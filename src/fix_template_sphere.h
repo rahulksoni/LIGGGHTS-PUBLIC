@@ -45,6 +45,8 @@ class FixTemplateSphere : public Fix {
   void write_restart(FILE *);
   void restart(char *);
 
+//  double particle_density = 0.0;   //Will be used in fix_breakparticle_force.cpp for marking the particles for breakage
+
   // access to protected properties
   virtual double volexpect();           
   virtual double massexpect();          
@@ -82,7 +84,7 @@ class FixTemplateSphere : public Fix {
   // properties of particle template
   int atom_type;
   class LMP_PROBABILITY_NS::PDF *pdf_radius;   
-  class LMP_PROBABILITY_NS::PDF *pdf_density;
+  class LMP_PROBABILITY_NS::PDF *pdf_density;	
   double volume_expect;
   double mass_expect;
   double vol_limit;

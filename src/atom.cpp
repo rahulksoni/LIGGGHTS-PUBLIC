@@ -1561,37 +1561,40 @@ void Atom::setup_sort_bins()
 ------------------------------------------------------------------------- */
 
 void Atom::add_callback(int flag)
-{
-  int ifix;
+	{
+	  int ifix;
 
-  // find the fix
-  // if find NULL ptr:
-  //   it's this one, since it is being replaced and has just been deleted
-  //   at this point in re-creation
-  // if don't find NULL ptr:
-  //   i is set to nfix = new one currently being added at end of list
+	  // find the fix
+	  // if find NULL ptr:
+	  //   it's this one, since it is being replaced and has just been deleted
+	  //   at this point in re-creation
+	  // if don't find NULL ptr:
+	  //   i is set to nfix = new one currently being added at end of list
 
-  for (ifix = 0; ifix < modify->nfix; ifix++)
-    if (modify->fix[ifix] == NULL) break;
+	  for (ifix = 0; ifix < modify->nfix; ifix++)
+		if (modify->fix[ifix] == NULL) break;
 
-  // add callback to lists, reallocating if necessary
+	  // add callback to lists, reallocating if necessary
 
-  if (flag == 0) {
-    if (nextra_grow == nextra_grow_max) {
-      nextra_grow_max += DELTA;
-      memory->grow(extra_grow,nextra_grow_max,"atom:extra_grow");
-    }
-    extra_grow[nextra_grow] = ifix;
-    nextra_grow++;
-  } else if (flag == 1) {
-    if (nextra_restart == nextra_restart_max) {
-      nextra_restart_max += DELTA;
-      memory->grow(extra_restart,nextra_restart_max,"atom:extra_restart");
-    }
-    extra_restart[nextra_restart] = ifix;
-    nextra_restart++;
-  }
-}
+	  if (flag == 0) {
+		if (nextra_grow == nextra_grow_max) 
+			{
+			  nextra_grow_max += DELTA;
+			  memory->grow(extra_grow,nextra_grow_max,"atom:extra_grow");
+			}
+			extra_grow[nextra_grow] = ifix;
+			nextra_grow++;
+		} else if (flag == 1) 
+			{
+				if (nextra_restart == nextra_restart_max) 
+					{
+					  nextra_restart_max += DELTA;
+					  memory->grow(extra_restart,nextra_restart_max,"atom:extra_restart");
+					}
+			extra_restart[nextra_restart] = ifix;
+			nextra_restart++;
+			}
+	}
 
 /* ----------------------------------------------------------------------
    unregister a callback to a fix

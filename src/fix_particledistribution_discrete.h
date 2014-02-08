@@ -29,7 +29,7 @@ FixStyle(particledistribution/discrete,FixParticledistributionDiscrete)
 #ifndef LMP_FIX_PARTICLEDISTRIBUTION_DISCRETE_H
 #define LMP_FIX_PARTICLEDISTRIBUTION_DISCRETE_H
 
-#include "fix.h"
+	#include "fix.h"
 
 enum{RAN_STYLE_CONSTANT_FPD,RAN_STYLE_UNIFORM_FPD,RAN_STYLE_GAUSSIAN_FPD};
 
@@ -38,81 +38,92 @@ namespace LAMMPS_NS {
 class FixParticledistributionDiscrete : public Fix {
  public:
   friend class FixPourDev;
-  FixParticledistributionDiscrete(class LAMMPS *, int, char **);
-  ~FixParticledistributionDiscrete();
-  void write_restart(FILE *);
-  void restart(char *);
+		  FixParticledistributionDiscrete(class LAMMPS *, int, char **);
+		  ~FixParticledistributionDiscrete();
+		  void write_restart(FILE *);
+		  void restart(char *);
 
-  int setmask();
+		  int setmask();
 
-  double vol_expect();
-  double mass_expect();
+		  double vol_expect();
+		  double mass_expect();
 
-  int max_type();
-  int min_type();
+		  int max_type();
+		  int min_type();
 
-  double min_rad(int);
-  double max_rad(int);
+		  double min_rad(int);
+		  double max_rad(int);
 
-  double min_rad()
-  { return minrad; }
-  double max_rad()
-  { return maxrad; }
-  double max_r_bound()
-  { return maxrbound; }
+		  double min_rad()
+				{ return minrad; }
+		  double max_rad()
+				{ return maxrad; }
+		  double max_r_bound()
+				{ return maxrbound; }
 
-  int max_nspheres();
+		  int max_nspheres();
 
-  int random_init_single(int);         
-  class Region* randomize_single();    
+		  int random_init_single(int);         
+		  class Region* randomize_single();    
 
-  void random_init_list(int);
-  int randomize_list(int,int,int);     
+		  void random_init_list(int);	
+		  int randomize_list(int,int,int);     
 
-  void finalize_insertion();
 
-  class ParticleToInsert *pti;
 
-  class ParticleToInsert **pti_list;
-  int n_pti, n_pti_max;
-  int insert(int n);
 
-  inline int n_particletemplates()
-  { return ntemplates; }
-  inline class FixTemplateSphere** particletemplates()
-  { return templates; }
+		  void finalize_insertion();
+
+
+
+
+		  class ParticleToInsert *pti;
+
+		  class ParticleToInsert **pti_list;
+		  int n_pti, n_pti_max;
+		  
+		  
+		  
+		  int insert(int n);
+		  
+		  
+
+		  inline int n_particletemplates()
+				{ return ntemplates; }
+		  inline class FixTemplateSphere** particletemplates()
+				{ return templates; }
 
  protected:
 
-  int ninserted;
-  int ninsert;
+		  int ninserted;
+		  int ninsert;
 
-  class RanPark *random;
-  int seed;
+		  class RanPark *random;
+		  int seed;
 
-  int iarg;
+		  int iarg;
 
-  // particle templates
-  int ntemplates;
-  double *distweight;
-  double *cumweight;
-  int *parttogen;
-  int *distorder;
-  class FixTemplateSphere **templates;
+		  // particle templates
+		  int ntemplates;
+		  double *distweight;
+		  double *cumweight;
+		  int *parttogen;
+		  int *distorder;
+		  class FixTemplateSphere **templates;
 
-  // mass and volume expectancy of this discrete distribution
-  double volexpect;
-  double massexpect;
+		  // mass and volume expectancy of this discrete distribution
+		  double volexpect;
+		  double massexpect;
 
-  // min/maximum particle type to be inserted
-  int maxtype;
-  int mintype;
+		  // min/maximum particle type to be inserted
+		  int maxtype;
+		  int mintype;
 
-  // maximum number of spheres a template has
-  int maxnspheres;
+		  // maximum number of spheres a template has
+		  int maxnspheres;
 
-  // maximum radius and bounding sphere radius
-  double minrad,maxrad,maxrbound;
+		  // maximum radius and bounding sphere radius
+		  double minrad,maxrad,maxrbound;
 };
 
 }

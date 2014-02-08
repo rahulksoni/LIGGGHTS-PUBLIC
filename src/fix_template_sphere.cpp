@@ -48,208 +48,223 @@ using namespace FixConst;
 
 FixTemplateSphere::FixTemplateSphere(LAMMPS *lmp, int narg, char **arg) :
   Fix(lmp, narg, arg)
-{
-  if (domain->dimension != 3)
-    error->fix_error(FLERR,this,"this fix is for 3D simulations only");
+	{
+//		if(screen) fprintf(screen ,"\n ===>>> TS:  FixTemplateSphere(LAMMPS *lmp, int narg, char **arg) \n");
+//		if(logfile) fprintf(logfile ,"\n ===>>> TS:  FixTemplateSphere(LAMMPS *lmp, int narg, char **arg) \n");
+		
+	  if (domain->dimension != 3)
+		error->fix_error(FLERR,this,"this fix is for 3D simulations only");
 
-  restart_global = 1;
+	  restart_global = 1;
 
-  // random number generator, same for all procs
-  if (narg < 4) error->fix_error(FLERR,this,"not enough arguments");
-  seed = atoi(arg[3]) + comm->me;
-  random = new RanPark(lmp,seed);
+	  // random number generator, same for all procs
+	  if (narg < 4) error->fix_error(FLERR,this,"not enough arguments");
+	  seed = atoi(arg[3]) + comm->me;
+	  random = new RanPark(lmp,seed);
 
-  iarg = 4;
+	  iarg = 4;
 
-  // set default values
-  atom_type = 1;
-  vol_limit = 1e-12;
+	  // set default values
+	  atom_type = 1;
+	  vol_limit = 1e-12;
 
-  pdf_radius = NULL;
-  pdf_density = NULL;
+	  pdf_radius = NULL;
+	  pdf_density = NULL;
 
-  pti = new ParticleToInsert(lmp);
+	  pti = new ParticleToInsert(lmp);
 
-  n_pti_max = 0;
-  pti_list = NULL;
+	  n_pti_max = 0;
+	  pti_list = NULL;
 
-  reg = NULL;
-  reg_var = NULL;
+	  reg = NULL;
+	  reg_var = NULL;
 
-  //parse further args
-  bool hasargs = true;
-  while (iarg < narg && hasargs)
-  {
-    hasargs = false;
-    if (strcmp(arg[iarg],"atom_type") == 0)
-    {
-      if (iarg+2 > narg) error->fix_error(FLERR,this,"not enough arguments");
-      atom_type=atoi(arg[iarg+1]);
-      if (atom_type < 1) error->fix_error(FLERR,this,"invalid atom type (must be >=1)");
-      hasargs = true;
-      iarg += 2;
-    }
-    else if (strcmp(arg[iarg],"region") == 0)
-    {
-      if (iarg+2 > narg) error->fix_error(FLERR,this,"not enough arguments");
-      int ireg = domain->find_region(arg[iarg+1]);
-      if (ireg < 0) error->fix_error(FLERR,this,"illegal region");
-      reg = domain->regions[ireg];
-      hasargs = true;
-      iarg += 2;
-    }
-    else if (strcmp(arg[iarg],"region_variable") == 0)
-    {
-      if (iarg+2 > narg) error->fix_error(FLERR,this,"not enough arguments");
-      int ifix = modify->find_fix(arg[iarg+1]);
-      if (ifix < 0) error->fix_error(FLERR,this,"illegal region/variable fix");
-      reg_var = static_cast<FixRegionVariable*>(modify->fix[ifix]);
-      hasargs = true;
-      iarg += 2;
-    }
-    else if (strcmp(arg[iarg],"volume_limit") == 0)
-    {
-      if (iarg+2 > narg) error->fix_error(FLERR,this,"not enough arguments for 'volume_limit'");
-      vol_limit = atof(arg[iarg+1]);
-      if(vol_limit <= 0)
-        error->fix_error(FLERR,this,"volume_limit > 0 required");
-      hasargs = true;
-      iarg += 2;
-    }
-    else if (strcmp(arg[iarg],"radius") == 0) {
-      hasargs = true;
-      if(strcmp(this->style,"particletemplate/sphere"))
-        error->fix_error(FLERR,this,"keyword radius only valid for particletemplate/sphere");
-      if (iarg+3 > narg)
-        error->all(FLERR,"Illegal fix particletemplate/sphere command, not enough arguments");
-      pdf_radius = new PDF(error);
-      if (strcmp(arg[iarg+1],"constant") == 0)
-      {
-          double value = atof(arg[iarg+2])*force->cg();
-          if( value <= 0.)
-            error->all(FLERR,"Illegal fix particletemplate/sphere command, radius must be >= 0");
-          pdf_radius->set_params<RANDOM_CONSTANT>(value);
-          iarg += 3;
-      }
-      else if (strcmp(arg[iarg+1],"uniform") == 0)
-      {
-          if(iarg+5 > narg)
-              error->fix_error(FLERR,this,"not enough arguments for uniform");
-          if(strcmp(arg[iarg+2],"mass") == 0)
-              pdf_radius->activate_mass_shift();
-          else if(strcmp(arg[iarg+2],"number"))
-              error->fix_error(FLERR,this,"expecting 'mass' or 'number'");
-          if(force->cg() > 1.)
-              error->fix_error(FLERR,this,"cannot use distribution with coarse-graining.");
-          double min = atof(arg[iarg+3]);
-          double max = atof(arg[iarg+4]);
-          if( min <= 0. || max <= 0. || min >= max)
-            error->fix_error(FLERR,this,"illegal min or max value for radius");
-          pdf_radius->set_params<RANDOM_UNIFORM>(min,max);
-          iarg += 5;
-      }
-      else if (strcmp(arg[iarg+1],"gaussian") == 0)
-      {
-          if(iarg+5 > narg)
-              error->fix_error(FLERR,this,"not enough arguments for gaussian");
-          if(strcmp(arg[iarg+2],"mass") == 0)
-              pdf_radius->activate_mass_shift();
-          else if(strcmp(arg[iarg+2],"number"))
-              error->fix_error(FLERR,this,"expecting 'mass' or 'number'");
-          if(force->cg() > 1.)
-              error->fix_error(FLERR,this,"cannot use distribution with coarse-graining.");
-          double mu = atof(arg[iarg+3]);
-          double sigma = atof(arg[iarg+4]);
-          if( mu <= 0. ) error->fix_error(FLERR,this,"illegal mu value for radius");
-          if( sigma <= 0. ) error->fix_error(FLERR,this,"illegal sigma value for radius");
-          pdf_radius->set_params<RANDOM_GAUSSIAN>(mu,sigma);
-          iarg += 5;
-      }
-      else if (strcmp(arg[iarg+1],"lognormal") == 0)
-      {
-          if(iarg+5 > narg)
-              error->fix_error(FLERR,this,"not enough arguments for lognormal");
-          if(strcmp(arg[iarg+2],"mass") == 0)
-              pdf_radius->activate_mass_shift();
-          else if(strcmp(arg[iarg+2],"number"))
-              error->fix_error(FLERR,this,"expecting 'mass' or 'number'");
-          if(force->cg() > 1.)
-              error->fix_error(FLERR,this,"cannot use distribution with coarse-graining.");
-          double mu = atof(arg[iarg+3]);
-          double sigma = atof(arg[iarg+4]);
-          if( sigma <= 0. ) error->fix_error(FLERR,this,"illegal sigma value for radius");
-          pdf_radius->set_params<RANDOM_LOGNORMAL>(mu,sigma);
-          iarg += 5;
-      }
-      else error->fix_error(FLERR,this,"invalid radius random style");
-      volume_expect = 4.*expectancy(pdf_radius)*expectancy(pdf_radius)*expectancy(pdf_radius)*M_PI/3.;
-    }
-    else if (strcmp(arg[iarg],"density") == 0) {
-      hasargs = true;
-      if (iarg+3 > narg) error->fix_error(FLERR,this,"not enough arguments");
-      pdf_density = new PDF(error);
-      if (strcmp(arg[iarg+1],"constant") == 0)
-      {
-          double value = atof(arg[iarg+2]);
-          if( value <= 0.) error->fix_error(FLERR,this,"density must be >= 0");
-          pdf_density->set_params<RANDOM_CONSTANT>(value);
-          iarg += 3;
-      }
-      else if (strcmp(arg[iarg+1],"uniform") == 0)
-      {
-          if (iarg+4 > narg) error->fix_error(FLERR,this,"not enough arguments");
-          double min = atof(arg[iarg+2]);
-          double max = atof(arg[iarg+3]);
-          if( min <= 0. || max <= 0. || min >= max)
-            error->fix_error(FLERR,this,"illegal min or max value for density");
-          pdf_density->set_params<RANDOM_UNIFORM>(min,max);
-          iarg += 4;
-      }
-      else if (strcmp(arg[iarg+1],"gaussian") == 0)
-      {
-          if (iarg+4 > narg)
-            error->fix_error(FLERR,this,"not enough arguments");
-          double mu = atof(arg[iarg+2]);
-          double sigma = atof(arg[iarg+3]);
-          if( mu <= 0. )
-            error->fix_error(FLERR,this,"illegal mu value for density");
-          if( sigma <= 0. ) error->all(FLERR,"illegal sigma value for density");
-          pdf_density->set_params<RANDOM_GAUSSIAN>(mu,sigma);
-          iarg += 4;
-      }
-      else if (strcmp(arg[iarg+1],"lognormal") == 0)
-      {
-          if (iarg+4 > narg)
-            error->fix_error(FLERR,this,"not enough arguments");
-          double mu = atof(arg[iarg+2]);
-          double sigma = atof(arg[iarg+3]);
-          if( sigma <= 0. ) error->all(FLERR,"illegal sigma value for density");
-          pdf_density->set_params<RANDOM_LOGNORMAL>(mu,sigma);
-          iarg += 4;
-      }
-      else error->fix_error(FLERR,this,"invalid density random style");
-      
-    }
-    else if(strcmp(style,"particletemplate/sphere") == 0)
-        error->fix_error(FLERR,this,"unrecognized keyword");
-  }
+	  //parse further args
+	  bool hasargs = true;
+	  while (iarg < narg && hasargs)
+		  {
+				hasargs = false;
+				if (strcmp(arg[iarg],"atom_type") == 0)
+					{
+						  if (iarg+2 > narg) error->fix_error(FLERR,this,"not enough arguments");
+						  atom_type=atoi(arg[iarg+1]);		//atom_type in the command "fix		fragments all particletemplate/multiplespheres 1 atom_type 1 density constant 2500 nspheres 10 ntry 1000000 & spheres file fragmentfile scale 1.0"
+						  if (atom_type < 1) error->fix_error(FLERR,this,"invalid atom type (must be >=1)");
+						  hasargs = true;
+						  iarg += 2;
+					}
+					else if (strcmp(arg[iarg],"region") == 0)		//not entering
+					{
+						  if (iarg+2 > narg) error->fix_error(FLERR,this,"not enough arguments");
+						  int ireg = domain->find_region(arg[iarg+1]);
+						  if (ireg < 0) error->fix_error(FLERR,this,"illegal region");
+						  reg = domain->regions[ireg];
+						  hasargs = true;
+						  iarg += 2;
+					}
+					else if (strcmp(arg[iarg],"region_variable") == 0)		//not entering
+					{
+						  if (iarg+2 > narg) error->fix_error(FLERR,this,"not enough arguments");
+						  int ifix = modify->find_fix(arg[iarg+1]);
+						  if (ifix < 0) error->fix_error(FLERR,this,"illegal region/variable fix");
+						  reg_var = static_cast<FixRegionVariable*>(modify->fix[ifix]);
+						  hasargs = true;
+						  iarg += 2;
+					}
+					else if (strcmp(arg[iarg],"volume_limit") == 0)			//not entering
+					{
+						  if (iarg+2 > narg) error->fix_error(FLERR,this,"not enough arguments for 'volume_limit'");
+						  vol_limit = atof(arg[iarg+1]);
+						  if(vol_limit <= 0)
+							error->fix_error(FLERR,this,"volume_limit > 0 required");
+						  hasargs = true;
+						  iarg += 2;
+					}
+					else if (strcmp(arg[iarg],"radius") == 0) 		//not entering
+					{
+						  hasargs = true;
+						  if(strcmp(this->style,"particletemplate/sphere"))
+							error->fix_error(FLERR,this,"keyword radius only valid for particletemplate/sphere");
+						  if (iarg+3 > narg)
+							error->all(FLERR,"Illegal fix particletemplate/sphere command, not enough arguments");
+						  pdf_radius = new PDF(error);
+						  if (strcmp(arg[iarg+1],"constant") == 0)
+								  {
+									  double value = atof(arg[iarg+2])*force->cg();
+									  if( value <= 0.)
+										error->all(FLERR,"Illegal fix particletemplate/sphere command, radius must be >= 0");
+									  pdf_radius->set_params<RANDOM_CONSTANT>(value);
+									  iarg += 3;
+								  }
+								  else if (strcmp(arg[iarg+1],"uniform") == 0)
+								  {
+									  if(iarg+5 > narg)
+										  error->fix_error(FLERR,this,"not enough arguments for uniform");
+									  if(strcmp(arg[iarg+2],"mass") == 0)
+										  pdf_radius->activate_mass_shift();
+									  else if(strcmp(arg[iarg+2],"number"))
+										  error->fix_error(FLERR,this,"expecting 'mass' or 'number'");
+									  if(force->cg() > 1.)
+										  error->fix_error(FLERR,this,"cannot use distribution with coarse-graining.");
+									  double min = atof(arg[iarg+3]);
+									  double max = atof(arg[iarg+4]);
+									  if( min <= 0. || max <= 0. || min >= max)
+										error->fix_error(FLERR,this,"illegal min or max value for radius");
+									  pdf_radius->set_params<RANDOM_UNIFORM>(min,max);
+									  iarg += 5;
+								  }
+								  else if (strcmp(arg[iarg+1],"gaussian") == 0)
+								  {
+									  if(iarg+5 > narg)
+										  error->fix_error(FLERR,this,"not enough arguments for gaussian");
+									  if(strcmp(arg[iarg+2],"mass") == 0)
+										  pdf_radius->activate_mass_shift();
+									  else if(strcmp(arg[iarg+2],"number"))
+										  error->fix_error(FLERR,this,"expecting 'mass' or 'number'");
+									  if(force->cg() > 1.)
+										  error->fix_error(FLERR,this,"cannot use distribution with coarse-graining.");
+									  double mu = atof(arg[iarg+3]);
+									  double sigma = atof(arg[iarg+4]);
+									  if( mu <= 0. ) error->fix_error(FLERR,this,"illegal mu value for radius");
+									  if( sigma <= 0. ) error->fix_error(FLERR,this,"illegal sigma value for radius");
+									  pdf_radius->set_params<RANDOM_GAUSSIAN>(mu,sigma);
+									  iarg += 5;
+								  }
+								  else if (strcmp(arg[iarg+1],"lognormal") == 0)
+								  {
+									  if(iarg+5 > narg)
+										  error->fix_error(FLERR,this,"not enough arguments for lognormal");
+									  if(strcmp(arg[iarg+2],"mass") == 0)
+										  pdf_radius->activate_mass_shift();
+									  else if(strcmp(arg[iarg+2],"number"))
+										  error->fix_error(FLERR,this,"expecting 'mass' or 'number'");
+									  if(force->cg() > 1.)
+										  error->fix_error(FLERR,this,"cannot use distribution with coarse-graining.");
+									  double mu = atof(arg[iarg+3]);
+									  double sigma = atof(arg[iarg+4]);
+									  if( sigma <= 0. ) error->fix_error(FLERR,this,"illegal sigma value for radius");
+									  pdf_radius->set_params<RANDOM_LOGNORMAL>(mu,sigma);
+									  iarg += 5;
+								  }
+									else error->fix_error(FLERR,this,"invalid radius random style");
+						  volume_expect = 4.*expectancy(pdf_radius)*expectancy(pdf_radius)*expectancy(pdf_radius)*M_PI/3.;
+					}
+					else if (strcmp(arg[iarg],"density") == 0) 		//Entering in second instance of loop (irg+=2 has made after first loop)
+					{
+						  hasargs = true;
+						  if (iarg+3 > narg) error->fix_error(FLERR,this,"not enough arguments");
+						  pdf_density = new PDF(error);
+						  if (strcmp(arg[iarg+1],"constant") == 0)
+								 {
+									  double value = atof(arg[iarg+2]);			//Entering
+									  if( value <= 0.) error->fix_error(FLERR,this,"density must be >= 0");
+									  pdf_density->set_params<RANDOM_CONSTANT>(value);
+									  iarg += 3;
+								 }
+								 else if (strcmp(arg[iarg+1],"uniform") == 0)		//not entering
+								 {
+									  if (iarg+4 > narg) error->fix_error(FLERR,this,"not enough arguments");
+									  double min = atof(arg[iarg+2]);
+									  double max = atof(arg[iarg+3]);
+									  if( min <= 0. || max <= 0. || min >= max)
+											error->fix_error(FLERR,this,"illegal min or max value for density");
+									  pdf_density->set_params<RANDOM_UNIFORM>(min,max);
+									  iarg += 4;
+								 }
+								 else if (strcmp(arg[iarg+1],"gaussian") == 0)		//not entering
+								 {
+								      if (iarg+4 > narg)
+											error->fix_error(FLERR,this,"not enough arguments");
+									  double mu = atof(arg[iarg+2]);
+									  double sigma = atof(arg[iarg+3]);
+									  if( mu <= 0. )
+											error->fix_error(FLERR,this,"illegal mu value for density");
+									  if( sigma <= 0. ) error->all(FLERR,"illegal sigma value for density");
+									  pdf_density->set_params<RANDOM_GAUSSIAN>(mu,sigma);
+									  iarg += 4;
+								 }
+								 else if (strcmp(arg[iarg+1],"lognormal") == 0)		//not entering
+								 {
+									  if (iarg+4 > narg)
+											error->fix_error(FLERR,this,"not enough arguments");
+									  double mu = atof(arg[iarg+2]);
+									  double sigma = atof(arg[iarg+3]);
+									  if( sigma <= 0. ) error->all(FLERR,"illegal sigma value for density");
+									  pdf_density->set_params<RANDOM_LOGNORMAL>(mu,sigma);
+									  iarg += 4;
+								 }
+								 else error->fix_error(FLERR,this,"invalid density random style");		//not true
+									  
+					}
+					else if(strcmp(style,"particletemplate/sphere") == 0)
+							error->fix_error(FLERR,this,"unrecognized keyword");
+		  }
+			
+		//So from the above loop atom_type and density values have been extracted from command "fix		fragments all particletemplate/multiplespheres 1 atom_type 1 density constant 2500 nspheres 10 ntry 1000000 &	spheres file fragmentfile scale 1.0"
+			
+		 
+		  
+		  if(pdf_density == NULL) error->fix_error(FLERR,this,"have to define 'density'");
 
-  if(pdf_density == NULL) error->fix_error(FLERR,this,"have to define 'density'");
+		  // end here for derived classes
+		  if(strcmp(this->style,"particletemplate/sphere"))return;
 
-  // end here for derived classes
-  if(strcmp(this->style,"particletemplate/sphere"))return;
+		  if(pdf_radius == NULL) error->fix_error(FLERR,this,"have to define 'radius'");
 
-  if(pdf_radius == NULL) error->fix_error(FLERR,this,"have to define 'radius'");
-
-  // set mass and volume expectancy
-  volume_expect = cubic_expectancy(pdf_radius)*4.*M_PI/3.;
-  mass_expect = expectancy(pdf_density) * volume_expect;
-}
+		  // set mass and volume expectancy
+		  volume_expect = cubic_expectancy(pdf_radius)*4.*M_PI/3.;
+		  mass_expect = expectancy(pdf_density) * volume_expect;
+		  
+//		if(screen) fprintf(screen ,"\n <<<=== TS:  FixTemplateSphere(LAMMPS *lmp, int narg, char **arg) \n");
+//		if(logfile) fprintf(logfile ,"\n <<<=== TS:  FixTemplateSphere(LAMMPS *lmp, int narg, char **arg) \n");
+	}
 
 /* ---------------------------------------------------------------------- */
 
 FixTemplateSphere::~FixTemplateSphere()
 {
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  ~FixTemplateSphere() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  ~FixTemplateSphere() \n");
+	
     delete random;
 
     delete pdf_density;
@@ -260,21 +275,38 @@ FixTemplateSphere::~FixTemplateSphere()
         delete pti;
         if(pti_list) delete_ptilist();
     }
+    
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  ~FixTemplateSphere() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  ~FixTemplateSphere() \n");
 }
 
 /* ----------------------------------------------------------------------*/
 
 int FixTemplateSphere::setmask()
 {
-  int mask = 0;
-  return mask;
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  setmask() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  setmask() \n");
+	
+ 
+  
+//	if(screen) fprintf(screen ,"\n <<<=== TS:  setmask() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  setmask() \n");
+	
+	int mask = 0;
+	return mask;
 }
 
 /* ----------------------------------------------------------------------*/
 
 Region* FixTemplateSphere::region()
 {
-    if(reg_var) return reg_var->region();
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  region() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  region() \n");
+	  
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  region() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  region() \n");
+	
+	if(reg_var) return reg_var->region();
     else return reg;
 }
 
@@ -282,6 +314,8 @@ Region* FixTemplateSphere::region()
 
 void FixTemplateSphere::randomize_single()
 {
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  randomize_single() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  randomize_single() \n");
     
     pti->atom_type = atom_type;
 
@@ -300,6 +334,9 @@ void FixTemplateSphere::randomize_single()
     vectorZeroize3D(pti->x_ins[0]);
 
     pti->groupbit = groupbit;
+    
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  randomize_single() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  randomize_single() \n");
 
 }
 
@@ -307,17 +344,26 @@ void FixTemplateSphere::randomize_single()
 
 void FixTemplateSphere::init_ptilist(int n_random_max)
 {
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  init_ptilist(int n_random_max) \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  init_ptilist(int n_random_max) \n");
+    
+	
     if(pti_list) error->one(FLERR,"invalid FixTemplateSphere::init_list()");
     n_pti_max = n_random_max;
     pti_list = (ParticleToInsert**) memory->smalloc(n_pti_max*sizeof(ParticleToInsert*),"pti_list");
     for(int i = 0; i < n_pti_max; i++)
        pti_list[i] = new ParticleToInsert(lmp);
+       
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  init_ptilist(int n_random_max) \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  init_ptilist(int n_random_max) \n");    
 }
 
 /* ----------------------------------------------------------------------*/
 
 void FixTemplateSphere::delete_ptilist()
 {
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  delete_ptilist() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  delete_ptilist() \n");
     if(n_pti_max == 0) return;
 
     for(int i = 0; i < n_pti_max; i++)
@@ -326,12 +372,18 @@ void FixTemplateSphere::delete_ptilist()
     memory->sfree(pti_list);
     pti_list = NULL;
     n_pti_max = 0;
+    
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  delete_ptilist() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  delete_ptilist() \n"); 
 }
 
 /* ----------------------------------------------------------------------*/
 
 void FixTemplateSphere::randomize_ptilist(int n_random,int distribution_groupbit)
 {
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  randomize_ptilist(int n_random,int distribution_groupbit) \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  randomize_ptilist(int n_random,int distribution_groupbit) \n");
+	
     for(int i = 0; i < n_random; i++)
     {
         
@@ -357,59 +409,104 @@ void FixTemplateSphere::randomize_ptilist(int n_random,int distribution_groupbit
         pti_list[i]->groupbit = groupbit | distribution_groupbit; 
     }
     
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  randomize_ptilist(int n_random,int distribution_groupbit) \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  randomize_ptilist(int n_random,int distribution_groupbit) \n"); 
+    
 }
 
 /* ----------------------------------------------------------------------*/
 
 double FixTemplateSphere::min_rad()
-{
-    return pdf_min(pdf_radius);
+{	
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  min_rad() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  min_rad() \n");
+    
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  min_rad() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  min_rad() \n"); 
+	
+	return pdf_min(pdf_radius);
 }
 
 /* ----------------------------------------------------------------------*/
 
 double FixTemplateSphere::max_rad()
 {
+//    if(screen) fprintf(screen ,"\n ===>>> TS:  max_rad() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  max_rad() \n");
     
-    return pdf_max(pdf_radius);
-}
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  max_rad() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  max_rad() \n"); 
 
+
+	return pdf_max(pdf_radius);
+}
 /* ----------------------------------------------------------------------*/
 
 double FixTemplateSphere::max_r_bound()
 {
-    return pdf_max(pdf_radius);
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  max_r_bound() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  max_r_bound() \n");
+    
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  max_r_bound() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  max_r_bound() \n"); 
+	
+	return pdf_max(pdf_radius);
 }
 
 /* ----------------------------------------------------------------------*/
 
 double FixTemplateSphere::volexpect()
 {
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  volexpect() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  volexpect() \n");
+  
     if(volume_expect < vol_limit)
         error->fix_error(FLERR,this,"Volume expectancy too small. Change 'volume_limit' "
         "if you are sure you know what you're doing");
-    return volume_expect;
+    
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  volexpect() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  volexpect() \n"); 
+	
+	return volume_expect;
 }
 
 /* ----------------------------------------------------------------------*/
 
 double FixTemplateSphere::massexpect()
 {
-    return mass_expect;
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  massexpect() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  massexpect() \n");
+   
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  massexpect() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  massexpect() \n");
+	
+	 return mass_expect;
 }
 
 /* ----------------------------------------------------------------------*/
 
 int FixTemplateSphere::number_spheres()
 {
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  number_spheres() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  number_spheres() \n");
+  
     return 1;
+  
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  number_spheres() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  number_spheres() \n");
 }
 
 /* ----------------------------------------------------------------------*/
 
 int FixTemplateSphere::type()
 {
-    return atom_type;
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  type() \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  type() \n");
+    
+//    if(screen) fprintf(screen ,"\n <<<=== TS:  type() \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  type() \n");
+	
+	return atom_type;
 }
 
 /* ----------------------------------------------------------------------
@@ -418,15 +515,20 @@ int FixTemplateSphere::type()
 
 void FixTemplateSphere::write_restart(FILE *fp)
 {
-  int n = 0;
-  double list[1];
-  list[n++] = static_cast<int>(random->state());
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  write_restart(FILE *fp) \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  write_restart(FILE *fp) \n");
+		  int n = 0;
+		  double list[1];
+		  list[n++] = static_cast<int>(random->state());
 
-  if (comm->me == 0) {
-    int size = n * sizeof(double);
-    fwrite(&size,sizeof(int),1,fp);
-    fwrite(list,sizeof(double),n,fp);
-  }
+		  if (comm->me == 0) 
+			  {
+					int size = n * sizeof(double);
+					fwrite(&size,sizeof(int),1,fp);
+					fwrite(list,sizeof(double),n,fp);
+			  }
+//	if(screen) fprintf(screen ,"\n <<<=== TS:  write_restart(FILE *fp) \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  write_restart(FILE *fp) \n");		  
 }
 
 /* ----------------------------------------------------------------------
@@ -435,10 +537,14 @@ void FixTemplateSphere::write_restart(FILE *fp)
 
 void FixTemplateSphere::restart(char *buf)
 {
-  int n = 0;
-  double *list = (double *) buf;
+//	if(screen) fprintf(screen ,"\n ===>>> TS:  restart(char *buf) \n");
+//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  restart(char *buf) \n");
+		  int n = 0;
+		  double *list = (double *) buf;
 
-  seed = static_cast<int> (list[n++]) + comm->me;
+		  seed = static_cast<int> (list[n++]) + comm->me;
 
-  random->reset(seed);
+		  random->reset(seed);
+//	if(screen) fprintf(screen ,"\n <<<=== TS:  restart(char *buf) \n");
+//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  restart(char *buf) \n");
 }

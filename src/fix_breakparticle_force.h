@@ -28,61 +28,143 @@ FixStyle(breakparticle/force,FixBreakparticleForce)
 #define LMP_FIX_BREAKPARTICLE_FORCE_H
 
 #include "fix_insert.h"						//Inclusion of fix_insert//
+#include "fix_check_timestep_gran.h"
+
+
 
 namespace LAMMPS_NS 				//I think modification of namespace LAMMPS_NS//
-{
+	{
 
-class FixBreakparticleForce : public FixInsert 			//inclusion of public part of fix_insert//
-{
- public:
+		class FixBreakparticleForce : public FixInsert 			//inclusion of public part of fix_insert//
+			{
+				 public:
 
-  FixBreakparticleForce(class LAMMPS *, int, char **);
-  ~FixBreakparticleForce();
+											
+											  
+					  FixBreakparticleForce(class LAMMPS *, int, char **);  //Extract values from script command
+					  ~FixBreakparticleForce();		
+						
+					  double previous_timestep;	
+									/******************************************************************************************/
+									double e = 2.71828;
+									double pi = 3.14159265359;
+									double JK_parameter_A = 0.0;
+									double JK_parameter_b = 0.0;
+									double WI = 0.0; 			//Limestone
+									double C_GM = 0.0; 
+									double C_WI = 0.0; 
+									double C_intercept = 0.0;
+									double ECS_max = 0.0;	//kwh/ton
+									double min_parent_size_to_break = 0.0;	//Particle below this size won't be eligible for breakage									
+									double min_daughter_size = 0.0;
+									double *sieves;
+									double con_fac_joule = 0.0; //Energy in joule in coversion factor
+									double con_fac_force = 0.0; //force in Newton in conversion factor
+									double conversion_factor = 0.0;
+									
+									bool timestep_resetflag = false;
+									/******************************************************************************************/
+									
+									/***************************************King Model*****************************************/
+									double t10;
+									//t10 = JK_parameter_A * (1-pow(2.718,((-JK_parameter_b) * ECS)))//
+									 
+									double alpha;
+									//alpha = C_ECS * ECS + C_GM * GM + C_WI_0 * WI_0 + C_intercept //
+									//alpha ~= C_GM * GM + C_WI * WI + C_intercept //
+									//alpha = C_GM * GM + alpha_intercept //
+									 
+									//double alpha_intercept;
+									double alpha_intercept = 0.0;
+									/******************************************************************************************/
+									
+									/**********************************Geometry parameters*************************************/
+									double x_min = 0.0;		
+									double x_max = 0.0;
+									double y_min = 0.0;
+									double y_max = 0.0;
+									double z_min = 0.0;
+									double z_max = 0.0;
+									int mill_axis = 0;						//(x=1, y=2,z=3)
+									/******************************************************************************************/								
 
-  void post_create();
-  void pre_delete();
+					  void post_create();		//FixInsert::post_create(); , char* fixarg[9];
+					  void pre_delete();		
+		
+					  virtual int setmask();																		
+					  virtual void init();		//FixInsert::init(); , updating timestep
+					  void init_defaults();			//Sets defaults
+					  int calc_ninsert_this();		//return n_break_this;
+					  
+					  virtual void end_of_step();		//Marks particles for breakage
+					  
+					   // force threshold and number of fragments per particle
+					  double ECS_break; //kWh/ton//tresold//
+					  
+					  double f_break;	
+					  
+					  double volumefraction;
+					  int n_fragments;
+					  
+					  /***********This two arrays will be used in JK model and developed model for alpha to calculate particle distribution********************/
+					  double *ECS;			//An array that will contain the ECS values for different particles//
+					  double *size;  		//An array that will contain the diameters of the particles//
+					 
+					  int *number_per_break;	//array containing number of daughters per particle//
+					 				
+					  double size_iparticle;		//Current size of particle, based on which alpha will be calculated//
+					  double ECS_iparticle;		//Current ECS for particle, based on which alpha will be calculated//
+					  
+					  int size_r_sphere = 0;
+					  
+					  double density_particle = 0.0;    //Will retrieve value from fix_template_multisphere.h
+					  /****************************************************************************************************************************************/
 
-  virtual int setmask();
-  virtual void init();
-  void init_defaults();			//comes from fix_insert.cpp through fix_insert.h//
-  int calc_ninsert_this();
-  virtual void end_of_step();
+				 protected:
 
- protected:
+					  // inherited functions
+					  virtual void calc_insertion_properties(); 		//fix_fragments = static_cast<FixTemplateMultiplespheres*>(fix_distribution->particletemplates()[0]); 	
+					  virtual void pre_insert();		//Count particles to break, copy their data and delete particles
+					  int is_nearby(int);		
+					  void x_v_omega(int ninsert_this,int &ninserted_this, int &ninserted_spheres_this, double &mass_inserted_this);		
+											//generate new particles
 
-  // inherited functions
-  virtual void calc_insertion_properties();
-  virtual void pre_insert();
-  int is_nearby(int);
-  void x_v_omega(int ninsert_this,int &ninserted_this, int &ninserted_spheres_this, double &mass_inserted_this);
+					  // functions declared in this class
+					  inline void generate_random(double *pos, double rad_broken,double rad_insert);		
+					  void print_stats_breakage_during();		
 
-  // functions declared in this class
-  inline void generate_random(double *pos, double rad_broken,double rad_insert);
-  void print_stats_breakage_during();
+					  // per breakage flag
+					  class FixPropertyAtom *fix_break;				  
+					  
+					  // template holding data of the fragments
+					  class FixTemplateMultiplespheres *fix_fragments;			
 
-  // per breakage flag
-  class FixPropertyAtom *fix_break;					/////////////Important///////////////fix_break will comtain atom properties//
+					  class FixCheckTimestepGran *check_timestep;	//will be used to reset timestep flag in fix_check_timestep_gran.h
+			//		  class FixCheckTimestepGran *randomize_single(); 
 
-  // template holding data of the fragments
-  class FixTemplateMultiplespheres *fix_fragments;			/////////////Important///////////////fix_fragemnets will take care of particle disctribution in space//
+					  // number of spheres in template
+					  int nspheres;
 
-  // force threshold and number of fragments per particle
-  double f_break;
-  double volumefraction;
-  int n_fragments;
+					  // coords of each sphere with respect to center of mass
+					  double **x_sphere;    //values of positions will be copied from fragment file in these//
 
-  // stats for breakage
-  int n_break,n_break_this,n_break_this_local;
-  double mass_break,mass_break_this,mass_break_this_local;
+					  // radius of each sphere
+					  double *r_sphere;		//radius values will be copied from fragment file in these//In ECS case values will be calculated and copied//
+			//		  double *volume_sphere;
+			//		  double *mass_sphere;
+					
+					  // stats for breakage
+					  int n_break,n_break_this,n_break_this_local;
+					  double mass_break,mass_break_this,mass_break_this_local;
 
-  // data for particles that to be broken
-  double **breakdata;
+					  // data for particles that to be broken
+					  double **breakdata;					  
 
-  //need non-virtual function for parent class
-  double insertion_fraction();
-};
+					  //need non-virtual function for parent class
+					  double insertion_fraction();		//returns volume fraction
+			};
 
-}
+	}
 
 #endif
 #endif

@@ -39,6 +39,8 @@ class FixCheckTimestepGran : public Fix {
   void init();
   void end_of_step();
   double compute_vector(int);
+  
+  bool resetflag;
 
  private:
   class MechParamGran* mpg;
@@ -53,6 +55,7 @@ class FixCheckTimestepGran : public Fix {
   double vmax; //max relative velocity
   double r_min;
   bool warnflag;
+  
 };
 
 }

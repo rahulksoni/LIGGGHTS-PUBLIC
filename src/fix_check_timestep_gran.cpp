@@ -62,13 +62,22 @@ FixCheckTimestepGran::FixCheckTimestepGran(LAMMPS *lmp, int narg, char **arg) :
   int iarg = 6;
 
   warnflag = true;
-  if(iarg < narg){
-      if (narg < 8) error->all(FLERR,"Illegal fix check/timestep/gran command, not enough arguments");
-      if(strcmp(arg[iarg++],"warn")!=0) error->all(FLERR,"Illegal fix check/timestep/gran command, use keyword 'warn'");
-      if(strcmp(arg[iarg++],"no")==0) warnflag=false;
-  }
+  resetflag = false;
+  if(iarg < narg)
+	  {		
+		    if (narg < 8) error->all(FLERR,"Illegal fix check/timestep/gran command, not enough arguments");
+	
+			if(strcmp(arg[6],"warn")==0 && strcmp(arg[7],"no")==0) warnflag=false;
+		
+			if(strcmp(arg[6],"reset")==0 && strcmp(arg[7],"yes")==0) 
+			{
+				resetflag=true;
+				if(screen) fprintf(screen, "4, resetflag = %d  \n", resetflag);
+				if(logfile) fprintf(logfile,  "4, resetflag = %d  \n", resetflag);
+			}
+	  }
 
-  vector_flag = 1;
+	vector_flag = 1;
   size_vector = 3;
   global_freq = nevery;
   extvector = 1;
@@ -148,6 +157,12 @@ void FixCheckTimestepGran::end_of_step()
         {
             if(screen) fprintf(screen,  "WARNING: time-step is %f %% of rayleigh time\n",fraction_rayleigh*100.);
             if(logfile) fprintf(logfile,"WARNING: time-step is %f %% of rayleigh time\n",fraction_rayleigh*100.);
+            if(resetflag == true)
+				{
+					update->dt = fraction_rayleigh_lim * rayleigh_time;
+					if(screen) fprintf(screen,  "WARNING: resetting time-step to fraction_rayleigh_limit (%f %%) of rayleigh time: new time-step = %f \n",fraction_rayleigh_lim*100.,update->dt);
+					if(logfile) fprintf(logfile,"WARNING: resetting time-step to fraction_rayleigh_limit (%f %%) of rayleigh time: new time-step = %f \n",fraction_rayleigh_lim*100.,update->dt);
+				}	            
         }
         if(fraction_hertz > fraction_hertz_lim)
         {

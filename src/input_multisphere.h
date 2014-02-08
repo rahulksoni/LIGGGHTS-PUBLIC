@@ -34,6 +34,8 @@ class InputMultisphere : protected Input {
   ~InputMultisphere();
 
   int clmpfile(double **,double*,int);
+  
+  
   void clmpfile(const char *,double **,double*,int);
 
 };
