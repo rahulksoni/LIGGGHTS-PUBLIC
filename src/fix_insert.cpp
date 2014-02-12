@@ -654,8 +654,6 @@ void FixInsert::pre_exchange()
 //								if(logfile) fprintf(logfile ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
 							}
 		  	
-		  
-		  
 		  // limit to max number of particles that shall be inserted
 		  // to avoid that max # may be slightly exceeded by random processes
 		  // in fix_distribution->randomize_list, set exact_number to 1
@@ -676,48 +674,16 @@ void FixInsert::pre_exchange()
 		  // re-allocate list if necessary
 		  
 		  if(ninsert_this_local > ninsert_this_max_local)
-				  {
-						  fix_distribution->random_init_list(ninsert_this_local);
-						  ninsert_this_max_local = ninsert_this_local;
-				  }
-				  
-	/*	  if(ninsert_this_local > ninsert_this_max_local)
-				  {
-					  if(ECS_flag == 0)
-							{
-								fix_distribution->random_init_list(ninsert_this_local);
-								ninsert_this_max_local = ninsert_this_local;
-							}else if(ECS_flag == 1)
-							{
-								fix_distribution->random_init_list(ninsert_daughter);
-								ninsert_this_max_local = ninsert_this_local;
-							}else
-							{
-								fprintf(screen ,"\n FI_H: Error: There is some problem with ECS_flag value. \n");
-								fprintf(logfile ,"\n FI_H: Error: There is some problem with ECS_flag value. \n");
-							}
-				  }
-	*/
+			 {
+				  fix_distribution->random_init_list(ninsert_this_local);
+				  ninsert_this_max_local = ninsert_this_local;
+			 }
 	
 		  // generate list of insertions
 		  // number of inserted particles can change if exact_number = 0
 		
 		ninsert_this_local = fix_distribution->randomize_list(ninsert_this_local,groupbit,exact_number);
-		/*  if(ECS_flag == 0)
-				{
-						ninsert_this_local = fix_distribution->randomize_list(ninsert_this_local,groupbit,exact_number);
-				}else if(ECS_flag == 1)
-				{
-						ninsert_this_local = fix_distribution->randomize_list(ninsert_daughter,groupbit,exact_number);
-						fprintf(screen ,"\n FI_H: ninsert_this_local = fix_distribution->randomize_list(ninsert_daughter,groupbit,exact_number) \n");
-						fprintf(logfile ,"\n FI_H: ninsert_this_local = fix_distribution->randomize_list(ninsert_daughter,groupbit,exact_number) \n");
-				}else
-				{
-						fprintf(screen ,"\n FI_H: Error: There is some problem with ECS_flag value. \n");
-						fprintf(logfile ,"\n FI_H: Error: There is some problem with ECS_flag value. \n");
-				}
-		*/ 
-		  
+
 		  MPI_Sum_Scalar(ninsert_this_local,ninsert_this,world);
 
 		  if(ninsert_this == 0)

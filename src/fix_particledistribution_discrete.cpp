@@ -486,8 +486,8 @@ int FixParticledistributionDiscrete::insert(int n)
 	
     int ninserted_spheres_local = 0;
     
-    if(screen) fprintf(screen, "Rahul K Soni: n = %d \n", n);
-	if(logfile) fprintf(logfile, "Rahul K Soni: n = %d \n", n);
+    if(screen) fprintf(screen, "to be inserted: n = %d \n", n);
+	if(logfile) fprintf(logfile, "to be inserted: n = %d \n", n);
     
     for(int i = 0; i < n; i++)
     {

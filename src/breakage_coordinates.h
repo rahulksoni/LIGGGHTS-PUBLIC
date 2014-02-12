@@ -48,17 +48,17 @@ void fill_bounds(int mill_axis, double x_min, double x_max, double y_min, double
 				z_fill_max = 0.6 * z_max; 
 			}else if(mill_axis == 3)
 			{
-				x_fill_min = -0.6 * x_min; 
+				x_fill_min = 0.6 * x_min; 
 				x_fill_max = 0.0 * x_max; 
-				y_fill_min = -0.6 * y_min; 
+				y_fill_min = 0.6 * y_min; 
 				y_fill_max = 0.0 * y_max; 
-				z_fill_min = -0.9 * z_min; 
+				z_fill_min = 0.9 * z_min; 
 				z_fill_max = 0.9 * z_max; 
 			}else if(mill_axis == -1)
 			{
-				x_fill_min = -0.9 * x_min; 
+				x_fill_min = 0.9 * x_min; 
 				x_fill_max = 0.9 * x_max; 
-				y_fill_min = -0.6 * y_min; 
+				y_fill_min = 0.6 * y_min; 
 				y_fill_max = 0.0 * y_max; 
 				z_fill_min = 0.0 * z_min; 
 				z_fill_max = 0.6 * z_max; 
@@ -66,7 +66,7 @@ void fill_bounds(int mill_axis, double x_min, double x_max, double y_min, double
 			{
 				x_fill_min = 0.0 * x_min; 
 				x_fill_max = 0.6 * x_max; 
-				y_fill_min = -0.9 * y_min; 
+				y_fill_min = 0.9 * y_min; 
 				y_fill_max = 0.9 * y_max; 
 				z_fill_min = 0.0 * z_min; 
 				z_fill_max = 0.6 * z_max; 
@@ -74,9 +74,9 @@ void fill_bounds(int mill_axis, double x_min, double x_max, double y_min, double
 			{
 				x_fill_min = 0.0 * x_min; 
 				x_fill_max = 0.6 * x_max; 
-				y_fill_min = -0.6 * y_min; 
+				y_fill_min = 0.6 * y_min; 
 				y_fill_max = 0.0 * y_max; 
-				z_fill_min = -0.9 * z_min; 
+				z_fill_min = 0.9 * z_min; 
 				z_fill_max = 0.9 * z_max; 
 			}
 			

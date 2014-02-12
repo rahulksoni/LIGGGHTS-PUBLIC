@@ -11,7 +11,7 @@ http://lammps.sandia.gov, Sandia National Laboratories
 Steve Plimpton, sjplimp@sandia.gov
 
 Copyright (2003) Sandia Corporation. Under the terms of Contract
-DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
+DE-AC04-94AL85000 with Sandia Corporatioin, the U.S. Government retains
 certain rights in this software. This software is distributed under
 the GNU General Public License.
 
@@ -27,10 +27,10 @@ FixStyle(breakparticle/force,FixBreakparticleForce)
 #ifndef LMP_FIX_BREAKPARTICLE_FORCE_H
 #define LMP_FIX_BREAKPARTICLE_FORCE_H
 
+#include <iostream>
 #include "fix_insert.h"						//Inclusion of fix_insert//
-#include "fix_check_timestep_gran.h"
 
-
+using namespace std;
 
 namespace LAMMPS_NS 				//I think modification of namespace LAMMPS_NS//
 	{
@@ -38,13 +38,10 @@ namespace LAMMPS_NS 				//I think modification of namespace LAMMPS_NS//
 		class FixBreakparticleForce : public FixInsert 			//inclusion of public part of fix_insert//
 			{
 				 public:
-
-											
-											  
+					
 					  FixBreakparticleForce(class LAMMPS *, int, char **);  //Extract values from script command
 					  ~FixBreakparticleForce();		
 						
-					  double previous_timestep;	
 									/******************************************************************************************/
 									double e = 2.71828;
 									double pi = 3.14159265359;
@@ -56,13 +53,19 @@ namespace LAMMPS_NS 				//I think modification of namespace LAMMPS_NS//
 									double C_intercept = 0.0;
 									double ECS_max = 0.0;	//kwh/ton
 									double min_parent_size_to_break = 0.0;	//Particle below this size won't be eligible for breakage									
-									double min_daughter_size = 0.0;
-									double *sieves;
+									double min_daughter_size = 0.0;		
+									double max_feed_particle_size = 0.0;	//feed size of particles (if two or more sizes then max of it)
 									double con_fac_joule = 0.0; //Energy in joule in coversion factor
 									double con_fac_force = 0.0; //force in Newton in conversion factor
 									double conversion_factor = 0.0;
 									
+									double previous_timestep;	
 									bool timestep_resetflag = false;
+									bool massdis_flag = false;
+									int massdis_nevery = 0;
+									int massdis_previous_ntimestep = 0; 	bool massdis_previous_ntimestep_flag = false;
+									int previous_particles_count = 0;
+									int particles_count = 0;
 									/******************************************************************************************/
 									
 									/***************************************King Model*****************************************/
@@ -87,6 +90,8 @@ namespace LAMMPS_NS 				//I think modification of namespace LAMMPS_NS//
 									double z_max = 0.0;
 									int mill_axis = 0;						//(x=1, y=2,z=3)
 									/******************************************************************************************/								
+									
+
 
 					  void post_create();		//FixInsert::post_create(); , char* fixarg[9];
 					  void pre_delete();		
@@ -109,6 +114,8 @@ namespace LAMMPS_NS 				//I think modification of namespace LAMMPS_NS//
 					  /***********This two arrays will be used in JK model and developed model for alpha to calculate particle distribution********************/
 					  double *ECS;			//An array that will contain the ECS values for different particles//
 					  double *size;  		//An array that will contain the diameters of the particles//
+					  double *sieves;		//Will contain sieves equal and larger than the minimum prescribed daughter size
+					  double *mass_distribution;	//Will contain the size based mass-distribution based 
 					 
 					  int *number_per_break;	//array containing number of daughters per particle//
 					 				
@@ -118,6 +125,8 @@ namespace LAMMPS_NS 				//I think modification of namespace LAMMPS_NS//
 					  int size_r_sphere = 0;
 					  
 					  double density_particle = 0.0;    //Will retrieve value from fix_template_multisphere.h
+					  
+					  int sieves_series_length = 0;	int index = 0; int index_2 = 0;
 					  /****************************************************************************************************************************************/
 
 				 protected:

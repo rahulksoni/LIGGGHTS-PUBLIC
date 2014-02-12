@@ -160,8 +160,8 @@ void FixCheckTimestepGran::end_of_step()
             if(resetflag == true)
 				{
 					update->dt = fraction_rayleigh_lim * rayleigh_time;
-					if(screen) fprintf(screen,  "WARNING: resetting time-step to fraction_rayleigh_limit (%f %%) of rayleigh time: new time-step = %f \n",fraction_rayleigh_lim*100.,update->dt);
-					if(logfile) fprintf(logfile,"WARNING: resetting time-step to fraction_rayleigh_limit (%f %%) of rayleigh time: new time-step = %f \n",fraction_rayleigh_lim*100.,update->dt);
+					if(screen) fprintf(screen,  "WARNING: resetting time-step to fraction_rayleigh_limit (%f %%) of rayleigh time: new time-step = %.6g \n",fraction_rayleigh_lim*100.,update->dt);
+					if(logfile) fprintf(logfile,"WARNING: resetting time-step to fraction_rayleigh_limit (%f %%) of rayleigh time: new time-step = %.6g \n",fraction_rayleigh_lim*100.,update->dt);
 				}	            
         }
         if(fraction_hertz > fraction_hertz_lim)
