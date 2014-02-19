@@ -77,7 +77,7 @@ FixCheckTimestepGran::FixCheckTimestepGran(LAMMPS *lmp, int narg, char **arg) :
 			}
 	  }
 
-	vector_flag = 1;
+  vector_flag = 1;
   size_vector = 3;
   global_freq = nevery;
   extvector = 1;
@@ -157,7 +157,7 @@ void FixCheckTimestepGran::end_of_step()
         {
             if(screen) fprintf(screen,  "WARNING: time-step is %f %% of rayleigh time\n",fraction_rayleigh*100.);
             if(logfile) fprintf(logfile,"WARNING: time-step is %f %% of rayleigh time\n",fraction_rayleigh*100.);
-            if(resetflag == true)
+            if(resetflag == true && (update->dt >= fraction_rayleigh_lim * rayleigh_time))
 				{
 					update->dt = fraction_rayleigh_lim * rayleigh_time;
 					if(screen) fprintf(screen,  "WARNING: resetting time-step to fraction_rayleigh_limit (%f %%) of rayleigh time: new time-step = %.6g \n",fraction_rayleigh_lim*100.,update->dt);
@@ -168,6 +168,12 @@ void FixCheckTimestepGran::end_of_step()
         {
             if(screen) fprintf(screen,  "WARNING: time-step is %f %% of hertz time\n",fraction_hertz*100.);
             if(logfile) fprintf(logfile,"WARNING: time-step is  %f %% of hertz time\n",fraction_hertz*100.);
+            if(resetflag == true && (update->dt >= fraction_hertz_lim * hertz_time))
+				{
+					update->dt = fraction_hertz_lim * hertz_time;
+					if(screen) fprintf(screen,  "WARNING: resetting time-step to fraction_hertz_limit (%f %%) of hertz time: new time-step = %.6g \n",fraction_hertz_lim*100.,update->dt);
+					if(logfile) fprintf(logfile,"WARNING: resetting time-step to fraction_hertz_limit (%f %%) of hertz time: new time-step = %.6g \n",fraction_hertz_lim*100.,update->dt);
+				}
         }
     }
 }
@@ -273,7 +279,7 @@ void FixCheckTimestepGran::calc_rayleigh_hertz_estims()
       }
   }
 
- MPI_Min_Scalar(hertz_time_min,world);
+  MPI_Min_Scalar(hertz_time_min,world);
   hertz_time = hertz_time_min;
 }
 

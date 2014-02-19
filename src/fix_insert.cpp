@@ -463,12 +463,12 @@ void FixInsert::print_stats_during(int ninsert_this, double mass_inserted_this)
 		  if (me == 0 && print_stats_during_flag)
 		  {
 			if (screen)
-			  fprintf(screen ,"INFO: Particle insertion %s: inserted %d particle templates (mass %f) at step %d\n - a total of %d particle templates (mass %f) inserted so far.\n",
-					  id,ninsert_this,mass_inserted_this,step,ninserted,massinserted);
+			  fprintf(screen ,"INFO: Particle insertion %s: inserted %d particle templates (mass %f) at step %d\n - a total of %d particle templates (mass %f) inserted so far [ nlocal = %d ].\n",
+					  id,ninsert_this,mass_inserted_this,step,ninserted,massinserted,atom->nlocal);
 
 			if (logfile)
-			  fprintf(logfile,"INFO: Particle insertion %s: inserted %d particle templates (mass %f) at step %d\n - a total of %d particle templates (mass %f) inserted so far.\n",
-					  id,ninsert_this,mass_inserted_this,step,ninserted,massinserted);
+			  fprintf(logfile,"INFO: Particle insertion %s: inserted %d particle templates (mass %f) at step %d\n - a total of %d particle templates (mass %f) inserted so far [ nlocal = %d ].\n",
+					  id,ninsert_this,mass_inserted_this,step,ninserted,massinserted,atom->nlocal);
 		  }
 //  if(screen) fprintf(screen ,"\n <<<=== FI: print_stats_during(int ninsert_this, double mass_inserted_this) \n");
 //  if(logfile) fprintf(logfile ,"\n <<<=== FI:print_stats_during(int ninsert_this, double mass_inserted_this) \n");
@@ -484,7 +484,6 @@ int FixInsert::setmask()
 	
 		  int mask = 0;
 		  mask |= PRE_EXCHANGE;
-		  
 		  
 //  if(screen) fprintf(screen ,"\n <<<=== FI: setmask() \n");
 //  if(logfile) fprintf(logfile ,"\n <<<=== FI: setmask() \n");		
@@ -503,7 +502,7 @@ void FixInsert::init()
 
 		if (!atom->radius_flag || !atom->rmass_flag)
 			error->fix_error(FLERR,this,"Fix insert requires atom attributes radius, rmass");
-		if (domain->triclinic)
+			if (domain->triclinic)
 			error->fix_error(FLERR,this,"Cannot use with triclinic box");
 		if (domain->dimension != 3)
 			error->fix_error(FLERR,this,"Can use fix insert for 3d simulations only");
@@ -629,27 +628,51 @@ void FixInsert::pre_exchange()
 {
 //  	if(screen) fprintf(screen ,"\n ===>>> FI: pre_exchange() \n");
 //	if(logfile) fprintf(logfile ,"\n ===>>> FI:pre_exchange() \n");	
+		
+		      if(screen) fprintf(screen ,"\n 1 \n");
+     		  if(logfile) fprintf(logfile ,"\n 1 \n");		
 					    
 		  int ninsert_this, ninsert_this_local; // global and local # bodies to insert this time-step
+		  
+		  if(screen) fprintf(screen ,"\n 2 \n");
+     		  if(logfile) fprintf(logfile ,"\n 2 \n");	
 
 		  // just return if should not be called on this timestep
 		  
 		  if (next_reneighbor != update->ntimestep || most_recent_ins_step == update->ntimestep) 
 			{
+				
+			  if(screen) fprintf(screen ,"\n 3 \n");
+     		  if(logfile) fprintf(logfile ,"\n 3\n");	
 //			  if(screen) fprintf(screen ,"\n <<<=== FI: pre_exchange() \n");
 //			  if(logfile) fprintf(logfile ,"\n <<<=== FI: pre_exchange() \n");	
 			  return;
 			}	  
 		  most_recent_ins_step = update->ntimestep;
+		  
+			if(screen) fprintf(screen ,"\n 4 \n");
+     		  if(logfile) fprintf(logfile ,"\n 4 \n");	
 
 		  // things to be done before inserting new particles
 		  pre_insert();
+		  
+		  if(screen) fprintf(screen ,"\n 5 \n");
+     	  if(logfile) fprintf(logfile ,"\n 5 \n");	
 
 		  // number of particles to insert this timestep
 		  ninsert_this = calc_ninsert_this();
+		  
+		  if(screen) fprintf(screen ,"\n 6 \n");
+     	  if(logfile) fprintf(logfile ,"\n 6 \n");	 
+     		  
 		  if(ECS_flag == 1)
 							{
+								if(screen) fprintf(screen ,"\n 7 \n");
+     		  if(logfile) fprintf(logfile ,"\n 7 \n");	
 								ninsert_this = ninsert_daughter;
+								
+								if(screen) fprintf(screen ,"\n 8 \n");
+     		  if(logfile) fprintf(logfile ,"\n 8 \n");	
 //								if(screen) fprintf(screen ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
 //								if(logfile) fprintf(logfile ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
 							}
@@ -657,44 +680,79 @@ void FixInsert::pre_exchange()
 		  // limit to max number of particles that shall be inserted
 		  // to avoid that max # may be slightly exceeded by random processes
 		  // in fix_distribution->randomize_list, set exact_number to 1
-		  if (ninsert_exists && ninserted + ninsert_this >= ninsert)
+		  if(ninsert_exists && ninserted + ninsert_this >= ninsert)
 		  {
+			  if(screen) fprintf(screen ,"\n 9 \n");
+     		  if(logfile) fprintf(logfile ,"\n 9 \n");	
+     		  
 			  ninsert_this = ninsert - ninserted;
+			  
+			  if(screen) fprintf(screen ,"\n 10 \n");
+     		  if(logfile) fprintf(logfile ,"\n 10 \n");	
+     		  
 			  if(ninsert_this < 0)
 				ninsert_this = 0;
 			  exact_number = 1;
+			  
+			  if(screen) fprintf(screen ,"\n 11 \n");
+     		  if(logfile) fprintf(logfile ,"\n 11 \n");	
 		  }
 
 		  // distribute ninsert_this across processors
 		  ninsert_this_local = distribute_ninsert_this(ninsert_this);
+		  if(screen) fprintf(screen ,"\n 12 \n");
+     	  if(logfile) fprintf(logfile ,"\n 12 \n");	
 		  
 		  //calculate number of total daughter particles so that plti_list of that size can be generated and initialize
 //		  int number_daughter = calc_daughter_distribution();
 		  
 		  // re-allocate list if necessary
-		  
+
 		  if(ninsert_this_local > ninsert_this_max_local)
 			 {
+					 if(screen) fprintf(screen ,"\n 13 \n");
+					 if(logfile) fprintf(logfile ,"\n 13 \n");	
+				 
 				  fix_distribution->random_init_list(ninsert_this_local);
+				  
+					  if(screen) fprintf(screen ,"\n 14 \n");
+					  if(logfile) fprintf(logfile ,"\n 14 \n");	
+					  
 				  ninsert_this_max_local = ninsert_this_local;
+				  
+					  if(screen) fprintf(screen ,"\n 15 \n");
+					  if(logfile) fprintf(logfile ,"\n 15 \n");	
 			 }
 	
 		  // generate list of insertions
 		  // number of inserted particles can change if exact_number = 0
 		
-		ninsert_this_local = fix_distribution->randomize_list(ninsert_this_local,groupbit,exact_number);
+		  ninsert_this_local = fix_distribution->randomize_list(ninsert_this_local,groupbit,exact_number);
+			  if(screen) fprintf(screen ,"\n 16 \n");
+     		  if(logfile) fprintf(logfile ,"\n 16 \n");	
 
 		  MPI_Sum_Scalar(ninsert_this_local,ninsert_this,world);
+			   if(screen) fprintf(screen ,"\n 17 \n");
+     		   if(logfile) fprintf(logfile ,"\n 17 \n");	
 
 		  if(ninsert_this == 0)
 		  {
+			  if(screen) fprintf(screen ,"\n 18 \n");
+     		  if(logfile) fprintf(logfile ,"\n 18 \n");	
+			  
 			  // warn if flowrate should be fulfilled
 			  if((nflowrate > 0. || massflowrate > 0.) && comm->me == 0)
 				error->warning(FLERR,"Particle insertion: Inserting no particle - check particle insertion settings");
+				
+			if(screen) fprintf(screen ,"\n 19 \n");
+     		  if(logfile) fprintf(logfile ,"\n 19 \n");		
 
 			  // schedule next insertion
 			  if (insert_every && (!ninsert_exists || ninserted < ninsert))
 				next_reneighbor += insert_every;
+				
+				if(screen) fprintf(screen ,"\n 20 \n");
+     		  if(logfile) fprintf(logfile ,"\n 20 \n");	
 			
 //			  if(screen) fprintf(screen ,"\n <<<=== FI: pre_exchange() \n");
 //			  if(logfile) fprintf(logfile ,"\n <<<=== FI: pre_exchange() \n");	
@@ -704,11 +762,16 @@ void FixInsert::pre_exchange()
 		  else if(ninsert_this < 0)
 		  {
 			  error->one(FLERR,"Particle insertion: Internal error");
+			  
+			  if(screen) fprintf(screen ,"\n 21 \n");
+     		  if(logfile) fprintf(logfile ,"\n 21 \n");	
 		  }
 
 		  // warn if max # insertions exceeded by random processes
 		  if (ninsert_exists && ninserted + ninsert_this > ninsert)
-		  {
+		  {			  
+			  if(screen) fprintf(screen ,"\n 22 \n");
+     		  if(logfile) fprintf(logfile ,"\n 22 \n");	
 			  error->warning(FLERR,"INFO: Particle insertion: Number of particles to insert was slightly exceeded by random process");
 		  }
 
@@ -730,7 +793,14 @@ void FixInsert::pre_exchange()
 		  // randomize insertion positions and set v, omega
 		  // also performs overlap check via xnear if requested
 		  // returns # bodies and # spheres that could actually be inserted
+		  
+		  if(screen) fprintf(screen ,"\n 23 \n");
+     	  if(logfile) fprintf(logfile ,"\n 23 \n");	
+		  
 		  x_v_omega(ninsert_this_local,ninserted_this_local,ninserted_spheres_this_local,mass_inserted_this_local);
+		  
+				if(screen) fprintf(screen ,"\n 24 \n");
+     		  if(logfile) fprintf(logfile ,"\n 24 \n");	
 
 		  // actual particle insertion
 		  
@@ -745,9 +815,15 @@ void FixInsert::pre_exchange()
 						error->all(FLERR,"Illegal ECS_flag value");
 				}
 
+if(screen) fprintf(screen ,"\n 25 \n");
+     		  if(logfile) fprintf(logfile ,"\n 25 \n");	
+
 		  // warn if max # insertions exceeded by random processes
 		  if (ninsert_exists && ninserted + ninsert_this > ninsert)
 		  {
+			  
+			  if(screen) fprintf(screen ,"\n 26 \n");
+     		  if(logfile) fprintf(logfile ,"\n 26 \n");	
 			  error->warning(FLERR,"INFO: Particle insertion: Number of particles to insert was slightly exceeded by random process");
 		  }
 
@@ -757,10 +833,16 @@ void FixInsert::pre_exchange()
 
 		  if (atom->tag_enable)
 		  {
+			  if(screen) fprintf(screen ,"\n 27 \n");
+     		  if(logfile) fprintf(logfile ,"\n 27 \n");	
+     		  
 			atom->tag_extend();
 			atom->natoms += static_cast<double>(ninserted_spheres_this);
 			if (atom->map_style)
 			{
+				if(screen) fprintf(screen ,"\n 28 \n");
+     		  if(logfile) fprintf(logfile ,"\n 28 \n");	
+				
 			  atom->nghost = 0;
 			  atom->map_init();
 			  atom->map_set();
@@ -770,10 +852,16 @@ void FixInsert::pre_exchange()
 		  // give particle distributions the chance to do some wrap-up
 		  
 		  fix_distribution->finalize_insertion();
+		  
+		  if(screen) fprintf(screen ,"\n 29 \n");
+     		  if(logfile) fprintf(logfile ,"\n 29 \n");	
 
 		  // give derived classes the chance to do some wrap-up
 		  
 		  finalize_insertion(ninserted_spheres_this_local);
+		  
+		  if(screen) fprintf(screen ,"\n 30 \n");
+     		  if(logfile) fprintf(logfile ,"\n 30 \n");	
 
 		  // tally stats
 		  MPI_Sum_Scalar(ninserted_this_local,ninserted_this,world);
@@ -782,15 +870,24 @@ void FixInsert::pre_exchange()
 		  massinserted += mass_inserted_this;
 		  print_stats_during(ninserted_this,mass_inserted_this);
 
+if(screen) fprintf(screen ,"\n 31 \n");
+     		  if(logfile) fprintf(logfile ,"\n 31 \n");	
+
 		  if(ninserted_this < ninsert_this && comm->me == 0)
-			  error->warning(FLERR,"Particle insertion: Less insertions than requested");
+			  error->warning(FLERR,"Particle insertion: Less insertions than requested, lost %d particles", ninsert_this-ninserted_this);
 
 		  // free local memory
 		  if(xnear) memory->destroy(xnear);
+		  
+		  if(screen) fprintf(screen ,"\n 32 \n");
+     		  if(logfile) fprintf(logfile ,"\n 32 \n");	
 
 		  // next timestep to insert
 		  if (insert_every && (!ninsert_exists || ninserted < ninsert)) next_reneighbor += insert_every;
 		  else next_reneighbor = 0;
+		  
+		  if(screen) fprintf(screen ,"\n 33 \n");
+     		  if(logfile) fprintf(logfile ,"\n 33 \n");	
 
 //		if(screen) fprintf(screen ,"\n <<<=== FI: pre_exchange() \n");
 //		if(logfile) fprintf(logfile ,"\n <<<=== FI: pre_exchange() \n");	
@@ -868,7 +965,7 @@ int FixInsert::distribute_ninsert_this(int ninsert_this)
 				
 				for(int i = 0; i < ngap; i++)
 				{
-					r = random->uniform() * static_cast<double>(ngap);
+					r = random->uniform() * static_cast<double>(ngap);								
 					int iproc = 0;
 					rsum = remainder[iproc];
 
@@ -881,7 +978,7 @@ int FixInsert::distribute_ninsert_this(int ninsert_this)
 				}
 			}
 
-			// Bcast the result
+			//Bcast the result
 			MPI_Bcast(ninsert_this_local_all,nprocs, MPI_INT,0,world);
 			ninsert_this_local = ninsert_this_local_all[me];
 

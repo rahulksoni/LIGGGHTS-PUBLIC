@@ -61,11 +61,12 @@ namespace LAMMPS_NS 				//I think modification of namespace LAMMPS_NS//
 									
 									double previous_timestep;	
 									bool timestep_resetflag = false;
-									bool massdis_flag = false;
+									bool massdis_flag_1 = false; 	bool massdis_flag_2 = false;
 									int massdis_nevery = 0;
 									int massdis_previous_ntimestep = 0; 	bool massdis_previous_ntimestep_flag = false;
-									int previous_particles_count = 0;
+									int previous_particles_count = 0;	double rmass_total;	double rmass_break = 0.0;
 									int particles_count = 0;
+									int random = 0;
 									/******************************************************************************************/
 									
 									/***************************************King Model*****************************************/
