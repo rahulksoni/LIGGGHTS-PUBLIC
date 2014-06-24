@@ -1,0 +1,161 @@
+#Test01: Hematite ore (13.6), 1000 rpm, 125 kg/h
+
+atom_style			granular
+atom_modify		map array
+boundary			f f f
+newton				off
+
+communicate		single vel yes
+processors 			* * *
+
+units				si
+
+region				reg block -0.4 0.4 -1.0 1.0 -0.5 1.5 units box
+create_box			2 reg
+
+neighbor			0.002 bin
+neigh_modify 		every 1 delay 0 check yes
+
+##Variables
+variable 			par_radius equal 	0.032										#Feed particle radius
+variable 			feed_amount equal 50.0										#Total ampunt of material to be fed
+variable 			feed_rate equal 125000.0										#Feed rate in kg/h
+variable 			mill_rpm equal 1000.0											#Rotor speed
+variable 			Young_modulus_material equal 36.e9							#Young modulus of material to be ground for calculation of timestep
+variable 			Poisson_ratio_material equal 0.2    								#Poisson's ratio for the material
+variable 			grate_size equal 0.02											#Grate opening in the hammer mill
+variable 			material_density equal 5000.0 									#Density of the material to be ground
+
+##Calc based variables	
+variable				feed_rate_seconds equal ${feed_rate}/3600.0						#feed rate in kg/second
+variable 			Shear_modulus_material equal ${Young_modulus_material}/2.0/(1+${Poisson_ratio_material})
+variable 			50_R_t equal 0.5*PI*${grate_size}/2.0*sqrt(${material_density}/${Shear_modulus_material})/(0.163*${Poisson_ratio_material}+0.8766)		
+																				#20% of Rayleigh	timestep		
+variable 			run_time equal 1.1*${feed_amount}/${feed_rate}*3600.0			#110 % of the actual run_time in seconds to achive mass feed and its grinding
+variable 			run_time_mins equal ${run_time}/60.0
+variable 			Num_steps equal round(${run_time}/${50_R_t})					#Num of steps for which simulation needs-to-be run
+variable 			Num_steps_int equal round(${Num_steps})						#Rounded integer for total number of steps
+variable 			period equal 60.0/${mill_rpm}									#time period in seconds for the mill rotor
+
+##Calc based variables only for information purpose
+variable 			num_par_to_feed equal ${feed_amount}/${material_density}/4.0*3.0/PI/(${par_radius}*${par_radius}*${par_radius})		#Total number of particles to feed
+variable 			num_par_insertion_each_num_steps equal ${Num_steps_int}/${num_par_to_feed}									#Particles will be fed at each this step
+
+##Material properties #First material is steel and second is BHQ
+fix 					m1 all property/global youngsModulus peratomtype 200.e9 ${Young_modulus_material}
+fix 					m2 all property/global poissonsRatio peratomtype 0.27 ${Poisson_ratio_material}
+fix 					m3 all property/global coefficientRestitution peratomtypepair 2 &
+						 0.4 0.4 &
+						 0.4 0.4 
+fix 					m4 all property/global coefficientFriction peratomtypepair 2 &
+						 0.75 0.75 &
+						 0.75 0.75
+fix 					m5 all property/global characteristicVelocity scalar 0.5.
+
+##Print values
+print				"*********************************************************************************************************"
+print 				"***************        50% of Rayleigh time = ${50_R_t}, Num_steps = ${Num_steps} 	  ***************"
+print 				"*************       Feed rate = ${feed_rate} kg/hr, run_time = ${run_time_mins} minutes, Feed amount = ${feed_amount} kg	  ***************"
+print 				"*******       Total feed particles = ${num_par_to_feed}, Particle insertion at each = ${num_par_insertion_each_num_steps} step *********"
+print				"*********************************************************************************************************"
+
+#New pair style
+pair_style 			gran/hertz/history 
+pair_coeff			* *
+
+timestep				${50_R_t}
+#fix					ts_check all check/timestep/gran 100 0.1 0.1 reset yes
+
+fix					gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+#walls
+fix					boxwalls_x1 all wall/gran/hertz/history primitive type 1 xplane -0.35
+fix					boxwalls_x2 all wall/gran/hertz/history primitive type 1 xplane +0.35
+fix					boxwalls_y1 all wall/gran/hertz/history primitive type 1 yplane -0.95
+fix					boxwalls_y2 all wall/gran/hertz/history primitive type 1 yplane +0.95
+fix					boxwalls_z1 all wall/gran/hertz/history primitive type 1 zplane -0.45
+fix					boxwalls_z2 all wall/gran/hertz/history primitive type 1 zplane +1.45 
+
+#import mesh from cad:
+group				Mill_shell_group region reg
+fix					Mill_shell Mill_shell_group mesh/surface file ShellProject.stl type 1  move 0. 0. 0. &
+						scale 0.001  rotate axis 0. 1. 0. angle 0.  rotate axis 0. 0. 1. angle 0. curvature 1e-5
+
+group				Rotor_group region reg
+fix					Rotor Rotor_group mesh/surface file RotorProject.stl type 1  move 0. 0. 0. &
+						scale 0.001  rotate axis 0. 1. 0. angle 0.  rotate axis 0. 0. 1. angle 0. curvature 1e-5
+
+#use the imported mesh (drum) as granular wall
+fix					Shell_wall all wall/gran/hertz/history mesh n_meshes 1 meshes Mill_shell
+fix					Rotor_wall all wall/gran/hertz/history mesh n_meshes 1 meshes Rotor
+fix					front_mill_wall all wall/gran/hertz/history primitive type 1 xplane -0.13
+fix					back_mill_wall all wall/gran/hertz/history primitive type 1 xplane 0.13
+fix					inface all mesh/surface file insertion_face.stl type 1 scale 0.9
+
+#Setting up rotation
+fix					rotate_Rotor all move/mesh mesh Rotor rotate origin 0. 0. 0. axis -1. 0. 0. period ${period}
+
+#inserting one particle out of mill to handle no atom error
+create_atoms		1 single 0.0 -0.6 -0.25 units box
+region				top block -0.02 0.02 -0.65 0.55  -0.255 -0.240 units box
+group				top region top
+set					group top diameter 0.081 density ${material_density} vx 0. vy 0. vz 0.				#Size greater than the maximum feed size specified in the parameters file so that this particle won't be considered for mass distribution
+
+#distributions for insertion
+fix					pts1 all particletemplate/sphere 6575 atom_type 2 density constant ${material_density} radius constant ${par_radius}
+fix					pdd1 all particledistribution/discrete 1.  1 pts1 1.0 
+
+
+#region for insertion
+group				particles type 2
+
+#particle insertion
+fix					insertion particles insert/stream seed 5356 distributiontemplate pdd1 &
+						verbose yes maxattempt 1000 mass ${feed_amount} massrate ${feed_rate_seconds} start 1000 overlapcheck yes vel constant 0. 0. -0.5 &
+						insertion_face inface extrude_length 0.5		
+
+#particle insertion
+#region        bc block -0.45 0.45 -0.62 -0.37 0.475 0.95 units box
+#group        particles region reg
+#fix            insertion particles pour/legacy 45 1 1236 vol 0.1 1 diam 0.025 0.025 dens 2700 2700 region bc 
+
+#defining groups for atoms so that differential dumping can be done later
+#group		particles type 1
+#group		balls type 2
+#group		mill type 3
+
+#apply nve integration
+fix					integr all nve/sphere
+
+#restart file
+restart 				100000 tmp.restart
+
+#thermo variables
+variable				curr_m_percent equal mass(particles)/${feed_amount}*100					#current mass % (with to be fed) of charged particles
+
+#thermo settings
+compute				1 all erotate/sphere
+print				"STEP		PARTICLES		KE		PE		ETOTAL 		Current_Mass_Percent"
+thermo_style			custom step atoms ke  pe etotal v_curr_m_percent
+thermo				1000
+thermo_modify		lost ignore norm no
+compute_modify		thermo_temp dynamic yes
+
+#dump 
+dump				dump_par all custom 10000 post/dump*.hammermillprojecttest01 id type type x y z ix iy iz vx vy vz fx fy fz omegax omegay omegaz radius
+dump 				Mill_Rotor_dump all mesh/stl 10000 post/Mill*.stl all
+#dump 				Rotor_dump Rotor_group mesh/stl 100 post/Rotor*.stl Rotor
+
+#define fragments for particle breakage, particle radii are relative
+fix	      				 fragments all particletemplate/multiplespheres 1 atom_type 1 density constant ${material_density} nspheres 1 ntry 1000000 &
+						spheres file fragmentfile_ECS scale 1.0
+
+#generating particles
+fix					pdfragments all particledistribution/discrete 1.  1 fragments 1.
+
+#fix to break particle
+fix					break all breakparticle/force seed 10001 distributiontemplate pdfragments every 1 ECS_threshold 1.0
+#insert particles
+run					${Num_steps_int} upto
+
+
