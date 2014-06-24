@@ -1,0 +1,16 @@
+solid INSERTION_FACE
+	facet normal 0.0 0.0 1.0
+		  outer loop
+			    vertex 0.09 0.7 0.6
+			    vertex -0.09 0.7 0.6
+			    vertex -0.09 -0.12 0.6
+		  endloop
+	endfacet
+	facet normal 0.0 0.0 1.0
+		  outer loop
+			    vertex 0.09 0.7 0.6
+			    vertex 0.09 -0.12 0.6
+			    vertex -0.09 -0.12 0.6
+		  endloop
+	endfacet
+endsolid INSERTION_FACE

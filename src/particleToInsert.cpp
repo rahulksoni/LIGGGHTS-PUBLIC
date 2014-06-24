@@ -34,36 +34,36 @@ using namespace LAMMPS_NS;
 
 ParticleToInsert::ParticleToInsert(LAMMPS* lmp,int ns) : Pointers(lmp)
 {
-//	if(screen) fprintf(screen ,"\n ===>>> PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
+	if(screen) fprintf(screen ,"\n ===>>> PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
         groupbit = 0;
 
         nspheres = ns;
 
         memory->create(x_ins,nspheres,3,"x_ins");
         radius_ins = new double[nspheres];
-//    if(screen) fprintf(screen ,"\n <<<=== PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
+   if(screen) fprintf(screen ,"\n <<<=== PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
 }
 
 /* ---------------------------------------------------------------------- */
 
 ParticleToInsert::~ParticleToInsert()
 {
-//	if(screen) fprintf(screen ,"\n ===>>> PTI:  ~ParticleToInsert() \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  ~ParticleToInsert() \n");
+	if(screen) fprintf(screen ,"\n ===>>> PTI:  ~ParticleToInsert() \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  ~ParticleToInsert() \n");
         memory->destroy(x_ins);
         delete []radius_ins;
-//    if(screen) fprintf(screen ,"\n <<<=== PTI:  ~ParticleToInsert() \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  ~ParticleToInsert() \n");
+   if(screen) fprintf(screen ,"\n <<<=== PTI:  ~ParticleToInsert() \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  ~ParticleToInsert() \n");
 }
 
 /* ---------------------------------------------------------------------- */
 
 int ParticleToInsert::insert()
 {
-//	if(screen) fprintf(screen ,"\n ===>>> PTI:  insert() \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  insert() \n");
+	if(screen) fprintf(screen ,"\n ===>>> PTI:  insert() \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  insert() \n");
     // perform the actual insertion
     // add particles, set coordinate and radius
     // set group mask to "all" plus fix groups
@@ -102,8 +102,8 @@ int ParticleToInsert::insert()
     }
     
     
-//    if(screen) fprintf(screen ,"\n <<<=== PTI:  insert() \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  insert() \n");
+    if(screen) fprintf(screen ,"\n <<<=== PTI:  insert() \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  insert() \n");
 	
 	/***************************************/
     return inserted;
@@ -156,8 +156,8 @@ int ParticleToInsert::check_near_set_x_v_omega(double *x,double *v, double *omeg
 
 int ParticleToInsert::set_x_v_omega(double *x, double *v, double *omega, double *quat)
 {
-//	if(screen) fprintf(screen ,"\n ===>>> PTI:  set_x_v_omega(double *x, double *v, double *omega, double *quat) \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  set_x_v_omega(double *x, double *v, double *omega, double *quat) \n");
+	if(screen) fprintf(screen ,"\n ===>>> PTI:  set_x_v_omega(double *x, double *v, double *omega, double *quat) \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  set_x_v_omega(double *x, double *v, double *omega, double *quat) \n");
     // add insertion position
     // relative position of spheres to each other already stored at this point
     for(int j = 0; j < nspheres; j++)
@@ -169,8 +169,8 @@ int ParticleToInsert::set_x_v_omega(double *x, double *v, double *omega, double 
 
     
     
-//    if(screen) fprintf(screen ,"\n <<<=== PTI:  set_x_v_omega(double *x, double *v, double *omega, double *quat) \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  set_x_v_omega(double *x, double *v, double *omega, double *quat) \n");
+    if(screen) fprintf(screen ,"\n <<<=== PTI:  set_x_v_omega(double *x, double *v, double *omega, double *quat) \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  set_x_v_omega(double *x, double *v, double *omega, double *quat) \n");
     
     return nspheres;
 }
@@ -194,8 +194,8 @@ void ParticleToInsert::set_r_mass_vol_rboundins(double r)
 
 void ParticleToInsert::scale_pti(double r_scale)
 {
-//	if(screen) fprintf(screen ,"\n ===>>> PTI:  scale_pti(double r_scale) \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  scale_pti(double r_scale) \n");
+	if(screen) fprintf(screen ,"\n ===>>> PTI:  scale_pti(double r_scale) \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  scale_pti(double r_scale) \n");
 	
     double r_scale3 = r_scale*r_scale*r_scale;
 
@@ -210,6 +210,6 @@ void ParticleToInsert::scale_pti(double r_scale)
 
     r_bound_ins *= r_scale;
     
-//    if(screen) fprintf(screen ,"\n <<<=== PTI:  scale_pti(double r_scale) \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  scale_pti(double r_scale) \n");
+    if(screen) fprintf(screen ,"\n <<<=== PTI:  scale_pti(double r_scale) \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  scale_pti(double r_scale) \n");
 }

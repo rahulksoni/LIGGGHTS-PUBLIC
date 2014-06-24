@@ -1,0 +1,309 @@
+LIGGGHTS (Version LIGGGHTS-PUBLIC 2.3.8, compiled 2014-05-29-16:27:12 by root based on LAMMPS 20 Apr 2012)
+# Moving mesh example
+
+atom_style	granular
+boundary	f f f
+newton		off
+
+communicate	single vel yes
+units		si
+
+#region		reg block -.1 0.6 -.1 0.2 -0.3 0.25 units box
+region		reg block -1.0 1.0 -1.0 1.0 -1.0 1.0 units box
+create_box	1 reg
+Created orthogonal box = (-1 -1 -1) to (1 1 1)
+  1 by 1 by 1 MPI processor grid
+
+neighbor	0.05 bin
+neigh_modify	delay 0
+
+#Material properties 
+fix 		m1 all property/global youngsModulus peratomtype 5.e6
+fix 		m2 all property/global poissonsRatio peratomtype 0.45
+fix 		m3 all property/global coefficientRestitution peratomtypepair 1 0.9
+fix 		m4 all property/global coefficientFriction peratomtypepair 1 0.05
+fix 		m5 all property/global characteristicVelocity scalar 2.
+
+#pair style
+pair_style 	gran/hooke/history #Hooke without cohesion
+pair_coeff	* *
+
+timestep	0.00005
+
+fix		1 all nve/sphere
+fix		2 all gravity 9.81 vector 0.0 0.0 -1.0
+
+#box walls
+fix		boxwalls_x1 all wall/gran/hooke/history primitive type 1 xplane -1.0
+fix		boxwalls_x2 all wall/gran/hooke/history primitive type 1 xplane +1.0
+fix		boxwalls_y1 all wall/gran/hooke/history primitive type 1 yplane -1.0
+fix		boxwalls_y2 all wall/gran/hooke/history primitive type 1 yplane +1.0
+fix		boxwalls_z1 all wall/gran/hooke/history primitive type 1 zplane -1.0
+fix		boxwalls_z2 all wall/gran/hooke/history primitive type 1 zplane +1.0 
+
+#import mesh from cad:
+#fix		cad1 all mesh/surface file bucket.stl type 1  move -50. -250. 0. #		scale 0.002  rotate axis 0. 1. 0. angle 90.  rotate axis 0. 0. 1. angle 90.
+
+fix		cad1 all mesh/surface file conveyor_belt.stl type 1 scale 0.9 move -0.8 0.0 -1.5 surface_vel 10.0 0.0 0.0
+fix		bucket_wall all wall/gran/hooke/history mesh n_meshes 1 meshes cad1
+
+#particle insertion
+region		bc block -0.9 0.9 -0.4 0.4 -0.02 -0.0 units box
+group		nve_group region reg
+0 atoms in group nve_group
+fix			ins nve_group pour/legacy 1500 1 1 vol 0.7 1000 diam 0.08 0.08 dens 2500 2500 vel 0. 0. 0. 0. 0.0 region bc
+Particle insertion: 94 every 1277 steps, 1500 by step 19156
+
+#thermo settings
+compute		1 all erotate/sphere
+thermo_style	custom step atoms ke c_1 vol
+thermo		1000
+thermo_modify	lost ignore norm no
+compute_modify	thermo_temp dynamic yes
+
+
+#make a dump of particles and the stl file 
+dump	dmp all custom 200 post/dump*.movingMesh id type type x y z ix iy iz vx vy vz fx fy fz omegax omegay omegaz radius
+dump 	dumpstl all mesh/stl 200 post/dump*.stl
+
+#run with particle insertion
+run		8000 upto
+Memory usage per processor = 11.3785 Mbytes
+Step Atoms KinEng 1 Volume 
+       0        0           -0            0            8 
+    1000       94    160.26505   0.49505885            8 
+    2000      188    403.62937    2.0019752            8 
+    3000      275    728.87085    4.0722944            8 
+    4000      354    1030.8766    7.3396913            8 
+    5000      354    1109.0885    12.762732            8 
+    6000      443    1414.1627    17.018155            8 
+    7000      525    1752.2766    21.695308            8 
+    8000      603    2177.7259    28.582788            8 
+Loop time of 0.745643 on 1 procs for 8000 steps with 603 atoms
+
+Pair  time (%) = 0.13019 (17.46)
+Neigh time (%) = 0.0491588 (6.59281)
+Comm  time (%) = 0.00240302 (0.322275)
+Outpt time (%) = 0.104863 (14.0635)
+Other time (%) = 0.459028 (61.5614)
+
+Nlocal:    603 ave 603 max 603 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    1120 ave 1120 max 1120 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 1120
+Ave neighs/atom = 1.85738
+Neighbor list builds = 159
+Dangerous builds = 0
+#unfix	ins
+
+#run to let particle settle
+run		29999 upto
+Memory usage per processor = 12.2177 Mbytes
+Step Atoms KinEng 1 Volume 
+    8000      603    2177.7259    28.582788            8 
+    9000      686    2286.9175    35.010249            8 
+   10000      686    2278.4261       46.221            8 
+   11000      770    2498.8807    56.436771            8 
+   12000      851    2804.5735    66.674066            8 
+   13000      928    3120.0829    74.590849            8 
+   14000      928    3025.8718    83.355704            8 
+   15000      999    3122.3996    95.832392            8 
+   16000     1072    3312.4997    103.83353            8 
+   17000     1150    3370.6947     113.0307            8 
+   18000     1221    3416.4961    121.93263            8 
+   19000     1221     3213.859    129.58321            8 
+   20000     1299    3200.0603    134.58734            8 
+   21000     1375    3244.2349    137.81337            8 
+   22000     1448    3412.4128    140.29354            8 
+   23000     1500    3203.9033    143.77249            8 
+   24000     1500    3179.1031    143.15032            8 
+   25000     1500    2977.9396    143.01837            8 
+   26000     1500    2781.6423      139.139            8 
+   27000     1500    2579.2377    138.52893            8 
+   28000     1500    2347.1081    135.47661            8 
+   29000     1500    2140.0069    128.91153            8 
+   29999     1500    1919.9415    123.22281            8 
+Loop time of 6.13598 on 1 procs for 21999 steps with 1500 atoms
+
+Pair  time (%) = 1.97005 (32.1066)
+Neigh time (%) = 0.428986 (6.99133)
+Comm  time (%) = 0.0156314 (0.254751)
+Outpt time (%) = 0.975335 (15.8953)
+Other time (%) = 2.74597 (44.752)
+
+Nlocal:    1500 ave 1500 max 1500 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    4316 ave 4316 max 4316 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 4316
+Ave neighs/atom = 2.87733
+Neighbor list builds = 411
+Dangerous builds = 0
+
+#use the imported mesh as granular wall
+#fix		bucket_wall all wall/gran/hooke/history mesh n_meshes 1 meshes cad1
+run		30000 upto
+Memory usage per processor = 12.2177 Mbytes
+Step Atoms KinEng 1 Volume 
+   29999     1500    1919.9415    123.22281            8 
+   30000     1500    1919.6094    123.22452            8 
+Loop time of 0.0115581 on 1 procs for 1 steps with 1500 atoms
+
+Pair  time (%) = 0.000160933 (1.39238)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 0 (0)
+Outpt time (%) = 0.011251 (97.3431)
+Other time (%) = 0.000146151 (1.26449)
+
+Nlocal:    1500 ave 1500 max 1500 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    4335 ave 4335 max 4335 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 4335
+Ave neighs/atom = 2.89
+Neighbor list builds = 0
+Dangerous builds = 0
+
+#moving mesh
+#fix		movecad1 all move/mesh mesh cad1  linear -0.5 0. -0.3
+
+#run
+#run		15000
+
+#now lift the particles up
+#unfix		movecad1
+#fix			movecad2 all move/mesh mesh cad1   rotate origin 0. 0. 0. axis 0. 1. 0. period 0.5.
+run			100000
+Memory usage per processor = 12.2177 Mbytes
+Step Atoms KinEng 1 Volume 
+   30000     1500    1919.6094    123.22452            8 
+   31000     1500    1692.1044    117.93598            8 
+   32000     1500    1490.3214    112.36678            8 
+   33000     1500    1302.5423    108.31359            8 
+   34000     1500    1171.7711    102.98261            8 
+   35000     1500    1036.3396    96.121301            8 
+   36000     1500    914.44228     89.41932            8 
+   37000     1500    829.69719    82.655406            8 
+   38000     1500    749.74178    78.060933            8 
+   39000     1500    661.67327    72.617744            8 
+   40000     1500    569.50865    66.458165            8 
+   41000     1500    507.17316    62.071846            8 
+   42000     1500    435.85299    58.060798            8 
+   43000     1500    375.92842    53.184463            8 
+   44000     1500    320.00247    49.462925            8 
+   45000     1500    274.46396    45.171866            8 
+   46000     1500    231.82174    41.619625            8 
+   47000     1500    195.53364    37.789693            8 
+   48000     1500    165.86632    34.078599            8 
+   49000     1500    144.05091     31.13967            8 
+   50000     1500    126.95757    29.576424            8 
+   51000     1500    98.043978    28.193208            8 
+   52000     1500    76.898508    26.711167            8 
+   53000     1500    61.860406     25.68883            8 
+   54000     1500    48.072826    24.330406            8 
+   55000     1500    37.961771     23.30651            8 
+   56000     1500    30.479537    22.372259            8 
+   57000     1500    26.453274    21.734755            8 
+   58000     1500    25.009039    21.416748            8 
+   59000     1500    23.755171    21.493865            8 
+   60000     1500    23.875443    21.592388            8 
+   61000     1500    19.192457    21.713639            8 
+   62000     1500    13.274699    21.745715            8 
+   63000     1500    11.246556    21.946871            8 
+   64000     1500    10.908398    21.741626            8 
+   65000     1500    10.542829    21.886247            8 
+   66000     1500    11.685987    22.572099            8 
+   67000     1500    10.463866    22.984226            8 
+   68000     1500    10.096148    23.383479            8 
+   69000     1500    8.3530067    23.596411            8 
+   70000     1500    7.9217493    23.938398            8 
+   71000     1500    8.5727735    24.217148            8 
+   72000     1500     9.303651    24.870925            8 
+   73000     1500    6.2008958    25.674512            8 
+   74000     1500    5.6097714    26.391446            8 
+   75000     1500    5.9382053    27.477837            8 
+   76000     1500    6.3349634    28.717323            8 
+   77000     1500    2.8339074    29.546339            8 
+   78000     1500    2.4678527     30.60348            8 
+   79000     1500    1.9542742    31.717772            8 
+   80000     1500    1.9520313    33.321002            8 
+   81000     1500    1.9450019    34.919483            8 
+   82000     1500    1.2198034     36.44797            8 
+   83000     1500   0.79236306     38.14864            8 
+   84000     1500   0.49959717    39.801685            8 
+   85000     1500   0.60278425    41.872454            8 
+   86000     1500    0.3880823    43.901508            8 
+   87000     1500    0.3985461    45.917314            8 
+   88000     1500   0.35538794    47.566668            8 
+   89000     1500   0.36321317    49.184711            8 
+   90000     1500    0.4686641    50.688045            8 
+   91000     1500   0.38001117    52.399643            8 
+   92000     1500   0.34018343    54.147001            8 
+   93000     1500    0.3299051    56.060594            8 
+   94000     1500   0.34054042    57.752456            8 
+   95000     1500   0.35987231    59.610749            8 
+   96000     1500   0.31598777    61.296994            8 
+   97000     1500   0.35058125    62.777941            8 
+   98000     1500    0.3314651    64.747158            8 
+   99000     1500   0.31727643    67.271485            8 
+  100000     1500   0.27968704    69.657213            8 
+  101000     1500   0.27911077    72.271214            8 
+  102000     1500   0.25283637    74.728638            8 
+  103000     1500   0.23228966    76.577885            8 
+  104000     1500   0.21048424    77.974929            8 
+  105000     1500   0.21384758    79.119766            8 
+  106000     1500   0.18772335    80.324195            8 
+  107000     1500   0.16426533    81.056982            8 
+  108000     1500   0.13678577      82.6404            8 
+  109000     1500    0.1432379    83.947426            8 
+  110000     1500   0.14246068    85.125845            8 
+  111000     1500   0.13711619    86.585668            8 
+  112000     1500   0.12877482    87.910977            8 
+  113000     1500   0.09272801    89.823119            8 
+  114000     1500  0.064815034    92.308114            8 
+  115000     1500  0.043476557    94.874139            8 
+  116000     1500  0.039393133    97.311033            8 
+  117000     1500  0.030147082    99.758317            8 
+  118000     1500  0.026271439    101.74951            8 
+  119000     1500  0.029868531    103.58425            8 
+  120000     1500  0.021628519    105.81287            8 
+  121000     1500  0.017269645    108.47788            8 
+  122000     1500   0.01231559    111.05107            8 
+  123000     1500  0.012349343    113.68535            8 
+  124000     1500  0.015533448    116.42075            8 
+  125000     1500  0.018399652     118.9987            8 
+  126000     1500  0.022884327    121.68079            8 
+  127000     1500  0.017523678    124.01538            8 
+  128000     1500  0.014767369    126.17501            8 
+  129000     1500   0.01234246    128.64153            8 
+  130000     1500  0.011953424    131.02339            8 
+Loop time of 106.869 on 1 procs for 100000 steps with 1500 atoms
+
+Pair  time (%) = 75.7852 (70.9142)
+Neigh time (%) = 0.733927 (0.686755)
+Comm  time (%) = 0.0380714 (0.0356244)
+Outpt time (%) = 4.99702 (4.67585)
+Other time (%) = 25.3146 (23.6876)
+
+Nlocal:    1500 ave 1500 max 1500 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    8429 ave 8429 max 8429 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 8429
+Ave neighs/atom = 5.61933
+Neighbor list builds = 421
+Dangerous builds = 0
+

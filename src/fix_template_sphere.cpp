@@ -362,8 +362,8 @@ void FixTemplateSphere::init_ptilist(int n_random_max)
 
 void FixTemplateSphere::delete_ptilist()
 {
-//	if(screen) fprintf(screen ,"\n ===>>> TS:  delete_ptilist() \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  delete_ptilist() \n");
+	if(screen) fprintf(screen ,"\n ===>>> TS:  delete_ptilist() \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> TS:  delete_ptilist() \n");
     if(n_pti_max == 0) return;
 
     for(int i = 0; i < n_pti_max; i++)
@@ -373,8 +373,8 @@ void FixTemplateSphere::delete_ptilist()
     pti_list = NULL;
     n_pti_max = 0;
     
-//    if(screen) fprintf(screen ,"\n <<<=== TS:  delete_ptilist() \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  delete_ptilist() \n"); 
+   if(screen) fprintf(screen ,"\n <<<=== TS:  delete_ptilist() \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== TS:  delete_ptilist() \n"); 
 }
 
 /* ----------------------------------------------------------------------*/
@@ -515,8 +515,8 @@ int FixTemplateSphere::type()
 
 void FixTemplateSphere::write_restart(FILE *fp)
 {
-//	if(screen) fprintf(screen ,"\n ===>>> TS:  write_restart(FILE *fp) \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> TS:  write_restart(FILE *fp) \n");
+	if(screen) fprintf(screen ,"\n ===>>> TS:  write_restart(FILE *fp) \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> TS:  write_restart(FILE *fp) \n");
 		  int n = 0;
 		  double list[1];
 		  list[n++] = static_cast<int>(random->state());
@@ -527,8 +527,8 @@ void FixTemplateSphere::write_restart(FILE *fp)
 					fwrite(&size,sizeof(int),1,fp);
 					fwrite(list,sizeof(double),n,fp);
 			  }
-//	if(screen) fprintf(screen ,"\n <<<=== TS:  write_restart(FILE *fp) \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== TS:  write_restart(FILE *fp) \n");		  
+	if(screen) fprintf(screen ,"\n <<<=== TS:  write_restart(FILE *fp) \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== TS:  write_restart(FILE *fp) \n");		  
 }
 
 /* ----------------------------------------------------------------------

@@ -626,26 +626,26 @@ int FixInsert::calc_ninsert_this()
 
 void FixInsert::pre_exchange()
 {
-//  	if(screen) fprintf(screen ,"\n ===>>> FI: pre_exchange() \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> FI:pre_exchange() \n");	
+		//  if(screen) fprintf(screen ,"\n ===>>> FI: pre_exchange() \n");
+		//	if(logfile) fprintf(logfile ,"\n ===>>> FI:pre_exchange() \n");	
 		
-		//      if(screen) fprintf(screen ,"\n 1 \n");
+		//    if(screen) fprintf(screen ,"\n 1 \n");
      	//	  if(logfile) fprintf(logfile ,"\n 1 \n");		
 					    
 		  int ninsert_this, ninsert_this_local; // global and local # bodies to insert this time-step
 		  
-	//	  if(screen) fprintf(screen ,"\n 2 \n");
-     //		  if(logfile) fprintf(logfile ,"\n 2 \n");	
+		//	 if(screen) fprintf(screen ,"\n 2 \n");
+	    //	 if(logfile) fprintf(logfile ,"\n 2 \n");	
 
-		  // just return if should not be called on this timestep
+		 // just return if should not be called on this timestep
 		  
 		  if (next_reneighbor != update->ntimestep || most_recent_ins_step == update->ntimestep) 
 			{
 				
 		//	  if(screen) fprintf(screen ,"\n 3 \n");
      	//	  if(logfile) fprintf(logfile ,"\n 3\n");	
-//			  if(screen) fprintf(screen ,"\n <<<=== FI: pre_exchange() \n");
-//			  if(logfile) fprintf(logfile ,"\n <<<=== FI: pre_exchange() \n");	
+		//	  if(screen) fprintf(screen ,"\n <<<=== FI: pre_exchange() \n");
+		//	  if(logfile) fprintf(logfile ,"\n <<<=== FI: pre_exchange() \n");	
 			  return;
 			}	  
 		  most_recent_ins_step = update->ntimestep;
@@ -673,8 +673,8 @@ void FixInsert::pre_exchange()
 								
 		//						if(screen) fprintf(screen ,"\n 8 \n");
      	//	  if(logfile) fprintf(logfile ,"\n 8 \n");	
-//								if(screen) fprintf(screen ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
-//								if(logfile) fprintf(logfile ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
+		//	  if(screen) fprintf(screen ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
+		//	  if(logfile) fprintf(logfile ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
 							}
 		  	
 		  // limit to max number of particles that shall be inserted
@@ -754,8 +754,8 @@ void FixInsert::pre_exchange()
 		//		if(screen) fprintf(screen ,"\n 20 \n");
      	//	  if(logfile) fprintf(logfile ,"\n 20 \n");	
 			
-//			  if(screen) fprintf(screen ,"\n <<<=== FI: pre_exchange() \n");
-//			  if(logfile) fprintf(logfile ,"\n <<<=== FI: pre_exchange() \n");	
+		//			  if(screen) fprintf(screen ,"\n <<<=== FI: pre_exchange() \n");
+		//			  if(logfile) fprintf(logfile ,"\n <<<=== FI: pre_exchange() \n");	
 
 			  return;
 		  }
@@ -853,8 +853,8 @@ void FixInsert::pre_exchange()
 		  
 		  fix_distribution->finalize_insertion();
 		  
-	//	  if(screen) fprintf(screen ,"\n 29 \n");
-     //		  if(logfile) fprintf(logfile ,"\n 29 \n");	
+		 //	  if(screen) fprintf(screen ,"\n 29 \n");
+	     //		  if(logfile) fprintf(logfile ,"\n 29 \n");	
 
 		  // give derived classes the chance to do some wrap-up
 		  
@@ -871,7 +871,7 @@ void FixInsert::pre_exchange()
 		  print_stats_during(ninserted_this,mass_inserted_this);
 
 		//	if(screen) fprintf(screen ,"\n 31 \n");
-     	//	  if(logfile) fprintf(logfile ,"\n 31 \n");	
+     	//	if(logfile) fprintf(logfile ,"\n 31 \n");	
 
 		  if(ninserted_this < ninsert_this && comm->me == 0)
 			  error->warning(FLERR,"Particle insertion: Less insertions than requested, lost %d particles", ninsert_this-ninserted_this);
@@ -880,17 +880,17 @@ void FixInsert::pre_exchange()
 		  if(xnear) memory->destroy(xnear);
 		  
 		//  if(screen) fprintf(screen ,"\n 32 \n");
-     	//	  if(logfile) fprintf(logfile ,"\n 32 \n");	
+     	//  if(logfile) fprintf(logfile ,"\n 32 \n");	
 
 		  // next timestep to insert
 		  if (insert_every && (!ninsert_exists || ninserted < ninsert)) next_reneighbor += insert_every;
 		  else next_reneighbor = 0;
 		  
-		//  if(screen) fprintf(screen ,"\n 33 \n");
+		// if(screen) fprintf(screen ,"\n 33 \n");
      	//	  if(logfile) fprintf(logfile ,"\n 33 \n");	
 
-//		if(screen) fprintf(screen ,"\n <<<=== FI: pre_exchange() \n");
-//		if(logfile) fprintf(logfile ,"\n <<<=== FI: pre_exchange() \n");	
+		if(screen) fprintf(screen ,"\n <<<=== FI: pre_exchange() \n");
+		if(logfile) fprintf(logfile ,"\n <<<=== FI: pre_exchange() \n");	
 
 }
 
@@ -901,8 +901,8 @@ void FixInsert::pre_exchange()
 int FixInsert::distribute_ninsert_this(int ninsert_this)
 {
 	
-//		 if(screen) fprintf(screen ,"\n ===>>> FI: distribute_ninsert_this(int ninsert_this) \n");
-//		 if(logfile) fprintf(logfile ,"\n ===>>> FI: distribute_ninsert_this(int ninsert_this) \n");	
+		 if(screen) fprintf(screen ,"\n ===>>> FI: distribute_ninsert_this(int ninsert_this) \n");
+		 if(logfile) fprintf(logfile ,"\n ===>>> FI: distribute_ninsert_this(int ninsert_this) \n");	
 	
 			int me, nprocs, ngap, ninsert_this_local, *ninsert_this_local_all;
 			double fraction_local, fraction_local_all_sum, *fraction_local_all, *remainder, r, rsum;
@@ -986,8 +986,8 @@ int FixInsert::distribute_ninsert_this(int ninsert_this)
 			delete []remainder;
 			delete []ninsert_this_local_all;
 			
-//	if(screen) fprintf(screen ,"\n <<<=== FI: distribute_ninsert_this(int ninsert_this) \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== FI: distribute_ninsert_this(int ninsert_this) \n");	
+	if(screen) fprintf(screen ,"\n <<<=== FI: distribute_ninsert_this(int ninsert_this) \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== FI: distribute_ninsert_this(int ninsert_this) \n");	
 
 			return ninsert_this_local;
 }
@@ -1021,8 +1021,8 @@ int FixInsert::count_nnear()
 
 int FixInsert::load_xnear(int ninsert_this_local)
 {
-//				 if(screen) fprintf(screen ,"\n ===>>> FI: load_xnear(int ninsert_this_local) \n");
-//	  if(logfile) fprintf(logfile ,"\n ===>>> FI: load_xnear(int ninsert_this_local) \n");	
+	 if(screen) fprintf(screen ,"\n ===>>> FI: load_xnear(int ninsert_this_local) \n");
+	  if(logfile) fprintf(logfile ,"\n ===>>> FI: load_xnear(int ninsert_this_local) \n");	
 	
 				  // count nearby spheres
 				  // setup for allgatherv
@@ -1055,8 +1055,8 @@ int FixInsert::load_xnear(int ninsert_this_local)
 				  }
 				  
   
-//		if(screen) fprintf(screen ,"\n <<<=== FI: load_xnear(int ninsert_this_local) \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== FI: load_xnear(int ninsert_this_local) \n");	
+		if(screen) fprintf(screen ,"\n <<<=== FI: load_xnear(int ninsert_this_local) \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== FI: load_xnear(int ninsert_this_local) \n");	
 
   return nspheres_near_local;
 }

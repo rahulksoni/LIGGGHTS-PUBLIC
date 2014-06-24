@@ -338,8 +338,8 @@ Region* FixParticledistributionDiscrete::randomize_single()
 
 void FixParticledistributionDiscrete::random_init_list(int ntotal)
 {
-//	if(screen) fprintf(screen ,"\n ===>>> PDD:  random_init_list(int ntotal) \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> PDD:  random_init_list(int ntotal) \n");
+	if(screen) fprintf(screen ,"\n ===>>> PDD:  random_init_list(int ntotal) \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> PDD:  random_init_list(int ntotal) \n");
 	
     int parttogen_max_i, n_pti_max_requested;
     int nprocs = comm->nprocs;
@@ -370,8 +370,8 @@ void FixParticledistributionDiscrete::random_init_list(int ntotal)
 			pti_list = new ParticleToInsert*[n_pti_max];
 		}
 		
-//	if(screen) fprintf(screen ,"\n <<<=== PDD:  random_init_list(int ntotal) \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== PDD:  random_init_list(int ntotal) \n");	
+	if(screen) fprintf(screen ,"\n <<<=== PDD:  random_init_list(int ntotal) \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== PDD:  random_init_list(int ntotal) \n");	
 }
 
 /* ----------------------------------------------------------------------
@@ -387,8 +387,8 @@ void FixParticledistributionDiscrete::random_init_list(int ntotal)
 int FixParticledistributionDiscrete::randomize_list(int ntotal,int insert_groupbit,int exact_number)
 	{
 		
-//		if(screen) fprintf(screen ,"\n ===>>> PDD:  randomize_list(int ntotal,int insert_groupbit,int exact_number) \n");
-//		if(logfile) fprintf(logfile ,"\n ===>>> PDD:  randomize_list(int ntotal,int insert_groupbit,int exact_number) \n");
+		if(screen) fprintf(screen ,"\n ===>>> PDD:  randomize_list(int ntotal,int insert_groupbit,int exact_number) \n");
+		if(logfile) fprintf(logfile ,"\n ===>>> PDD:  randomize_list(int ntotal,int insert_groupbit,int exact_number) \n");
 		
 	//	if(ntotal > n_pti_max)
 	//		{
@@ -468,8 +468,8 @@ int FixParticledistributionDiscrete::randomize_list(int ntotal,int insert_groupb
 		
 		
 		
-//		if(screen) fprintf(screen ,"\n <<<=== PDD:  randomize_list(int ntotal,int insert_groupbit,int exact_number) \n");
-//		if(logfile) fprintf(logfile ,"\n <<<=== PDD:  randomize_list(int ntotal,int insert_groupbit,int exact_number) \n");
+		if(screen) fprintf(screen ,"\n <<<=== PDD:  randomize_list(int ntotal,int insert_groupbit,int exact_number) \n");
+		if(logfile) fprintf(logfile ,"\n <<<=== PDD:  randomize_list(int ntotal,int insert_groupbit,int exact_number) \n");
 		
 		return ninsert;
 	}
@@ -481,8 +481,8 @@ int FixParticledistributionDiscrete::randomize_list(int ntotal,int insert_groupb
 
 int FixParticledistributionDiscrete::insert(int n)
 {
-//	if(screen) fprintf(screen ,"\n ===>>> PDD:  insert(int n) \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> PDD:  insert(int n) \n");
+	if(screen) fprintf(screen ,"\n ===>>> PDD:  insert(int n) \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> PDD:  insert(int n) \n");
 	
     int ninserted_spheres_local = 0;
     
@@ -496,8 +496,8 @@ int FixParticledistributionDiscrete::insert(int n)
     }
     
     
-//    if(screen) fprintf(screen ,"\n <<<=== PDD:  insert(int n) \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== PDD:  insert(int n) \n");
+    if(screen) fprintf(screen ,"\n <<<=== PDD:  insert(int n) \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== PDD:  insert(int n) \n");
 	
 	return ninserted_spheres_local;
 }
@@ -508,14 +508,14 @@ int FixParticledistributionDiscrete::insert(int n)
 
 void FixParticledistributionDiscrete::finalize_insertion()
 {
-//	if(screen) fprintf(screen ,"\n ===>>> PDD:  finalize_insertion() \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> PDD:  finalize_insertion() \n"); 
+	if(screen) fprintf(screen ,"\n ===>>> PDD:  finalize_insertion() \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> PDD:  finalize_insertion() \n"); 
 	
     for(int i = 0; i < ntemplates; i++)
         templates[i]->finalize_insertion();
         
-//    if(screen) fprintf(screen ,"\n <<<=== PDD:  finalize_insertion() \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== PDD:  finalize_insertion() \n");   
+   if(screen) fprintf(screen ,"\n <<<=== PDD:  finalize_insertion() \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== PDD:  finalize_insertion() \n");   
 }
 
 /* ----------------------------------------------------------------------*/
@@ -628,8 +628,8 @@ int FixParticledistributionDiscrete::max_nspheres()
 
 void FixParticledistributionDiscrete::write_restart(FILE *fp)
 {
-//	if(screen) fprintf(screen ,"\n ===>>> PDD:  write_restart(FILE *fp) \n");
-//	if(logfile) fprintf(logfile ,"\n ===>>> PDD:  write_restart(FILE *fp) \n");
+	if(screen) fprintf(screen ,"\n ===>>> PDD:  write_restart(FILE *fp) \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> PDD:  write_restart(FILE *fp) \n");
 		  int n = 0;
 		  double list[1];
 		  list[n++] = static_cast<int>(random->state());
@@ -639,8 +639,8 @@ void FixParticledistributionDiscrete::write_restart(FILE *fp)
 			fwrite(&size,sizeof(int),1,fp);
 			fwrite(list,sizeof(double),n,fp);
 		  }
-//	if(screen) fprintf(screen ,"\n <<<=== PDD:  write_restart(FILE *fp) \n");
-//	if(logfile) fprintf(logfile ,"\n <<<=== PDD:  write_restart(FILE *fp) \n");
+	if(screen) fprintf(screen ,"\n <<<=== PDD:  write_restart(FILE *fp) \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== PDD:  write_restart(FILE *fp) \n");
 }
 
 /* ----------------------------------------------------------------------

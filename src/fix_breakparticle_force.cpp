@@ -92,8 +92,8 @@ std::fstream& writefile(std::fstream& file, int nparticles, int ntimestep, doubl
 FixBreakparticleForce::FixBreakparticleForce(LAMMPS *lmp, int narg, char **arg) :
   FixInsert(lmp, narg, arg)   
 	{
-//		if(screen) fprintf(screen ,"\n \n \n \n Entering function FixBreakparticleForce(). \n");
-//		if(logfile) fprintf(logfile ,"\n \n \n \n Entering function FixBreakparticleForce(). \n");
+		if(screen) fprintf(screen ,"\n \n \n \n Entering function FixBreakparticleForce(). \n");
+		if(logfile) fprintf(logfile ,"\n \n \n \n Entering function FixBreakparticleForce(). \n");
 				// set defaults first, then parse args
 		init_defaults();      	
 				//function defined in this file itself. Does following
@@ -252,10 +252,12 @@ FixBreakparticleForce::FixBreakparticleForce(LAMMPS *lmp, int narg, char **arg) 
 							index_lower++;			//Nos. lesser than min_daughter_size
 						}
 						
-					while(sieves_series[sieves_series_length - 1 - index_upper] > max_feed_particle_size)		//counts number of sieves bigger than the max particle size
+					while(max_feed_particle_size < sieves_series[sieves_series_length - 1 - index_upper])		//counts number of sieves bigger than the max particle size
 						{
 							index_upper++;			//Nos. bigger than max_feed_particle_size
 						}
+					index_upper--;					//for safe side
+
 					if(screen) fprintf(screen ,"\n sieves_series_length = %d, index_lower = %d, index_upper = %d \n",sieves_series_length,index_lower,index_upper);
 					if(logfile) fprintf(logfile ,"\n sieves_series_length = %d, index_lower = %d, index_upper = %d \n",sieves_series_length,index_lower,index_upper);
 												
@@ -301,20 +303,20 @@ FixBreakparticleForce::FixBreakparticleForce(LAMMPS *lmp, int narg, char **arg) 
 					for(int i = 0; i < (sieves_series_length - index_lower - index_upper); i++) 	mass_distribution_truncated[i] = 0.0; 	//creating the zeros array of the size of the size of selected size	
 
 					/*----------------------Obatining previous values if restart was performed----------------------------*/
-					if(update->ntimestep > 100)
+			/*		if(update->ntimestep > 1000)
 						{
 							fstream MassDisTruncated_RetriveFromRestart;
 						
 							MassDisTruncated_RetriveFromRestart.open("mass_distribution_truncated", std::ios::in);
 
-								for(int i = 0; i < (sieves_series_length - index_lower - index_upper); i++) 	MassDisTruncated_RetriveFromRestart>>mass_distribution_truncated[i];
+								for(int i = 0; i < (sieves_series_length - index_lower - index_upper); i++) 	mass_distribution_truncated[i]<<MassDisTruncated_RetriveFromRestart;
 
 							MassDisTruncated_RetriveFromRestart.close();
-						}
+						}		*/
 					/*----------------------------------------------------------------------------------------------------*/
 
 					/*---------------------------Initiating values in truncated mass file --------------------------------*/
-				/*	if(passing_truncation_first_time_switch == true)
+					/*	if(passing_truncation_first_time_switch == true)
 						{
 							fstream MassDisTruncated;
 							
@@ -387,8 +389,8 @@ FixBreakparticleForce::FixBreakparticleForce(LAMMPS *lmp, int narg, char **arg) 
 
 		if(maxrad >= 1.) error->all(FLERR,"Fix breakparticle/force: Particle distribution must be relative, max radius must be < 1");
 		
-//		if(screen) fprintf(screen ,"\n Exiting function FixBreakparticleForce(). \n");
-//		if(logfile) fprintf(logfile ,"\n Exiting function FixBreakparticleForce(). \n");
+		if(screen) fprintf(screen ,"\n Exiting function FixBreakparticleForce(). \n");
+		if(logfile) fprintf(logfile ,"\n Exiting function FixBreakparticleForce(). \n");
 	}	//this means new radius is given in relative terms//
 	
 
@@ -649,8 +651,8 @@ inline int FixBreakparticleForce::is_nearby(int i)
 void FixBreakparticleForce::end_of_step()  	
 	//assigning properties//
 	{
-//		if(screen) fprintf(screen ,"\n Entering function end_of_step(). \n \n ");
-//		if(logfile) fprintf(logfile ,"\n Entering function end_of_step(). \n \n");
+		if(screen) fprintf(screen ,"\n Entering function end_of_step(). \n \n ");
+		if(logfile) fprintf(logfile ,"\n Entering function end_of_step(). \n \n");
 		
 		int nlocal = atom->nlocal;	
 			//nlocal is number of atoms in this processor//
@@ -747,7 +749,7 @@ void FixBreakparticleForce::end_of_step()
 			}					
 		
 		/*--------------Printing truncated mass to a file for use while restarting simulation----------------*/
-		fstream MassDisTruncated;
+	/*	fstream MassDisTruncated;
 					
 		MassDisTruncated.open("mass_distribution_truncated", std::ios::out);	
 											
@@ -757,7 +759,7 @@ void FixBreakparticleForce::end_of_step()
 						MassDisTruncated<<"\t";
 				}
 							
-		MassDisTruncated.close();	
+		MassDisTruncated.close();	*/
 		/*----------------------------------------------------------------------------------------------------*/
 						
 
@@ -795,7 +797,7 @@ void FixBreakparticleForce::end_of_step()
 							}		
 					}
 				
-				for(int i = 1; i < (sieves_series_length - index_lower - index_upper); i++)	mass_distribution[i] += mass_distribution_truncated[i];			//adds the truncated mass	
+		//		for(int i = 1; i < (sieves_series_length - index_lower - index_upper); i++)	mass_distribution[i] += mass_distribution_truncated[i];			//adds the truncated mass	
 
 				/*--------------------------Prints differential mass distribution----------------------------*/										
 				fstream diff_massdistribution;
@@ -811,7 +813,7 @@ void FixBreakparticleForce::end_of_step()
 				writefile(diff_massdistribution, previous_particles_count, update->ntimestep, mass_distribution, sieves_series_length - index_lower - index_upper, 1); 
 				/*--------------------------------------------------------------------------------------------*/
 								
-				for(int i = 1; i < (sieves_series_length - index_lower - index_upper); i++)	mass_distribution[i] += mass_distribution[i-1];			//converts to cumulative mass distribution				
+		//		for(int i = 1; i < (sieves_series_length - index_lower - index_upper); i++)	mass_distribution[i] += mass_distribution[i-1];			//converts to cumulative mass distribution				
 						
 				/*-------------------------Prints cumulative mass distribution-------------------------------*/										
 				fstream cum_massdistribution;
@@ -843,8 +845,8 @@ void FixBreakparticleForce::end_of_step()
 				if(screen) fprintf(screen, "\n%d flags (mass = %f kg) out of %d  turned to 1 at ntimestep = %d \n", flag_count,rmass_break,nlocal,update->ntimestep);
 				if(logfile) fprintf(logfile, "\n%d flags (mass = %f kg) out of %d turned to 1 at ntimestep = %d \n", flag_count,rmass_break,nlocal,update->ntimestep);
 			}
-		//if(screen) fprintf(screen ,"\n Exiting function end_of_step(). \n \n");
-		//if(logfile) fprintf(logfile ,"\n Exiting function end_of_step(). \n \n");	
+if(screen) fprintf(screen ,"\n Exiting function end_of_step(). \n \n");
+if(logfile) fprintf(logfile ,"\n Exiting function end_of_step(). \n \n");	
 	}
 
 /* ---------------------------------------------------------------------- */
@@ -852,8 +854,8 @@ void FixBreakparticleForce::end_of_step()
 void FixBreakparticleForce::pre_insert()		
 	//things to be done before particle insertion//
 	{
-//		if(screen) fprintf(screen ,"\n Entering function pre_insert(). \n");
-//		if(logfile) fprintf(logfile ,"\n Entering function pre_insert(). \n");
+		if(screen) fprintf(screen ,"\n Entering function pre_insert(). \n");
+		if(logfile) fprintf(logfile ,"\n Entering function pre_insert(). \n");
 		
 		int i,ibreak;
 		int nlocal = atom->nlocal;	
@@ -1040,16 +1042,16 @@ void FixBreakparticleForce::pre_insert()
 	   // print stats
 	   print_stats_breakage_during();     //print stats in terminal//
 	   
-//	   if(screen) fprintf(screen ,"\n Exiting function pre_insert(). \n");
-//	   if(logfile) fprintf(logfile ,"\n Exiting function pre_insert(). \n");
+	   if(screen) fprintf(screen ,"\n Exiting function pre_insert(). \n");
+	   if(logfile) fprintf(logfile ,"\n Exiting function pre_insert(). \n");
 	}
 
 /* ---------------------------------------------------------------------- */
 
 void FixBreakparticleForce::print_stats_breakage_during()
 	{
-//	  if(screen) fprintf(screen ,"\n Entering function print_stats_breakage_during(). \n");
-//	  if(logfile) fprintf(logfile ,"\n Entering function print_stats_breakage_during(). \n");
+	  if(screen) fprintf(screen ,"\n Entering function print_stats_breakage_during(). \n");
+	  if(logfile) fprintf(logfile ,"\n Entering function print_stats_breakage_during(). \n");
 	  
 	  int step = update->ntimestep;
 
@@ -1064,8 +1066,8 @@ void FixBreakparticleForce::print_stats_breakage_during()
 					  n_break_this,mass_break_this,step,n_break,mass_break);
 		  }
 		  
-//	  if(screen) fprintf(screen ,"\n Exiting function print_stats_breakage_during(). \n");
-//	  if(logfile) fprintf(logfile ,"\n Exiting function print_stats_breakage_during(). \n");  
+	  if(screen) fprintf(screen ,"\n Exiting function print_stats_breakage_during(). \n");
+	  if(logfile) fprintf(logfile ,"\n Exiting function print_stats_breakage_during(). \n");  
 		  
 	}
 
@@ -1073,8 +1075,8 @@ void FixBreakparticleForce::print_stats_breakage_during()
 
 int FixBreakparticleForce::calc_ninsert_this()		
 	{
-//		if(screen) fprintf(screen ,"\n Entering function calc_ninsert_this(). \n");
-//		if(logfile) fprintf(logfile ,"\n Entering function calc_ninsert_this(). \n");
+		if(screen) fprintf(screen ,"\n Entering function calc_ninsert_this(). \n");
+		if(logfile) fprintf(logfile ,"\n Entering function calc_ninsert_this(). \n");
 
 /****************************************************************************************************************************************/		
 		if(ECS_flag == 1)
@@ -1257,12 +1259,14 @@ int FixBreakparticleForce::calc_ninsert_this()
 				ninsert_daughter = cum_ninsert_daughter;		//ninsert_daughter is the total number of fragments to-be generated for breakage of all eligible parent particles
 			}
 	
-//		if(screen) fprintf(screen ,"\n Exiting function calc_ninsert_this(). \n");
-//		if(logfile) fprintf(logfile ,"\n Exiting function calc_ninsert_this(). \n");
-		
+
 		// number of ptis to insert this timestep
 		// will effectively insert n_break_this * n_fragments spheres
 		return n_break_this;
+
+		if(screen) fprintf(screen ,"\n Exiting function calc_ninsert_this(). \n");
+		if(logfile) fprintf(logfile ,"\n Exiting function calc_ninsert_this(). \n");
+		
 	}
 
 /* ----------------------------------------------------------------------
@@ -1277,8 +1281,8 @@ int FixBreakparticleForce::calc_ninsert_this()
 
 void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int &ninserted_spheres_this, double &mass_inserted_this)
 	{
-//		if(screen) fprintf(screen ,"\n \n \n \n \n \n Entering function x_v_omega() \n");
-//		if(logfile) fprintf(logfile ,"\n \n \n \n \n \n Entering function x_v_omega() \n");
+		if(screen) fprintf(screen ,"\n \n \n \n \n \n Entering function x_v_omega() \n");
+		if(logfile) fprintf(logfile ,"\n \n \n \n \n \n Entering function x_v_omega() \n");
 		
 		double pos_ins[3],v_ins[3],omega_ins[3],quat_ins[4],rad_broken;
 		int iparticle, nins;
@@ -1371,11 +1375,11 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
 				
 				}else if(ECS_flag == 1)
 				{					
-						  if(screen) fprintf(screen ,"\n n_break_this_local = %d \n \n \n",n_break_this_local);
-						  if(logfile) fprintf(logfile ,"\n n_break_this_local = %d \n \n \n",n_break_this_local);	
+						  if(screen) fprintf(screen ,"\nn_break_this_local = %d \n \n \n",n_break_this_local);
+						  if(logfile) fprintf(logfile ,"\nn_break_this_local = %d \n \n \n",n_break_this_local);	
 						  
-						  if(screen) fprintf(screen ,"\n Number of daughters per break \n");
-						  if(logfile) fprintf(logfile ,"\n Number of daughters per break \n");
+						  if(screen) fprintf(screen ,"\nNumber of daughters per break \n");
+						  if(logfile) fprintf(logfile ,"\nNumber of daughters per break \n");
 						  					
 						  int total_break = 0;
 						  
@@ -1450,7 +1454,7 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
 																	{
 																		jj++;
 																	}
-																mass_distribution_truncated[jj] += density_particle * 4.0 * pi * r_sphere[daughter] * r_sphere[daughter] * r_sphere[daughter] / 3.0;
+												//				mass_distribution_truncated[jj] += density_particle * 4.0 * pi * r_sphere[daughter] * r_sphere[daughter] * r_sphere[daughter] / 3.0;
 															}else
 															{
 																if(regenerate_in_bin_switch == false)
@@ -1571,8 +1575,8 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
 //		if(screen) fprintf(screen ,"\n ninserted_spheres_this_local = %d, mass_inserted_this_local= %f \t \n ", ninserted_spheres_this_local, mass_inserted_this_local);		
 //		if(logfile) fprintf(logfile ,"\n ninserted_spheres_this_local = %d, mass_inserted_this_local= %f \t \n ", ninserted_spheres_this_local, mass_inserted_this_local);	
 							
-//	    if(screen) fprintf(screen ,"\n Exiting function x_v_omega(). \n ");
-//	    if(logfile) fprintf(logfile ,"\n Exiting function x_v_omega(). \n "); 
+	    if(screen) fprintf(screen ,"\n Exiting function x_v_omega(). \n ");
+	    if(logfile) fprintf(logfile ,"\n Exiting function x_v_omega(). \n "); 
 	  
 //	    if(screen) fprintf(screen ,"\n *********************************************************************** \n \n \n \n \n \n \n \n \n \n");
 //	    if(logfile) fprintf(logfile ,"\n ***********************************************************************. \n \n \n \n \n \n \n \n \n \n"); 
@@ -1581,11 +1585,11 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
 //not sure if we realy need this function, however it needs to be a function with this name here for the parent class fix-instert
 double FixBreakparticleForce::insertion_fraction()
 	{
-//		if(screen) fprintf(screen ,"\n Entering function insertion_fraction(). \n");
-//		if(logfile) fprintf(logfile ,"\n Entering function insertion_fraction(). \n");	
+		if(screen) fprintf(screen ,"\n Entering function insertion_fraction(). \n");
+		if(logfile) fprintf(logfile ,"\n Entering function insertion_fraction(). \n");	
 		
-//		if(screen) fprintf(screen ,"\n Exiting function insertion_fraction(). \n");
-//		if(logfile) fprintf(logfile ,"\n Exiting function insertion_fraction(). \n");
+		if(screen) fprintf(screen ,"\n Exiting function insertion_fraction(). \n");
+		if(logfile) fprintf(logfile ,"\n Exiting function insertion_fraction(). \n");
 		
 		return volumefraction;
 	}

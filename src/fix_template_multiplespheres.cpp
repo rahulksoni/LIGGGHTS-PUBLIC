@@ -488,8 +488,8 @@ void FixTemplateMultiplespheres::randomize_single()
 
 void FixTemplateMultiplespheres::init_ptilist(int n_random_max)
 	{
-	//	if(screen) fprintf(screen ,"\n ===>>> TMS: init_ptilist(int n_random_max). \n");
-	//	if(logfile) fprintf(logfile ,"\n ===>>> TMS: init_ptilist(int n_random_max). \n");
+		if(screen) fprintf(screen ,"\n ===>>> TMS: init_ptilist(int n_random_max). \n");
+		if(logfile) fprintf(logfile ,"\n ===>>> TMS: init_ptilist(int n_random_max). \n");
 		
 		if(pti_list) error->all(FLERR,"invalid FixTemplateSphere::init_list()");
 		n_pti_max = n_random_max;
@@ -497,8 +497,8 @@ void FixTemplateMultiplespheres::init_ptilist(int n_random_max)
 		for(int i = 0; i < n_pti_max; i++)
 		   pti_list[i] = new ParticleToInsert(lmp,nspheres);
 		   
-	//	if(screen) fprintf(screen ,"\n <<<=== TMS: init_ptilist(int n_random_max). \n");
-	//	if(logfile) fprintf(logfile ,"\n <<<=== TMS: init_ptilist(int n_random_max). \n");   
+		if(screen) fprintf(screen ,"\n <<<=== TMS: init_ptilist(int n_random_max). \n");
+		if(logfile) fprintf(logfile ,"\n <<<=== TMS: init_ptilist(int n_random_max). \n");   
 	}
 
 
@@ -507,8 +507,8 @@ void FixTemplateMultiplespheres::init_ptilist(int n_random_max)
 void FixTemplateMultiplespheres::randomize_ptilist(int n_random,int distribution_groupbit)
 	{
 		
-	//	if(screen) fprintf(screen ,"\n ===>>> TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");
-	//	if(logfile) fprintf(logfile ,"\n ===>>> TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");
+	if(screen) fprintf(screen ,"\n ===>>> TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");
+		if(logfile) fprintf(logfile ,"\n ===>>> TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");
 		
 		
 		for(int i = 0; i < n_random; i++)
@@ -562,8 +562,8 @@ void FixTemplateMultiplespheres::randomize_ptilist(int n_random,int distribution
 			}
 			
 			
-	//	if(screen) fprintf(screen ,"\n <<<=== TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");
-	//	if(logfile) fprintf(logfile ,"\n <<<=== TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");  
+		if(screen) fprintf(screen ,"\n <<<=== TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");
+		if(logfile) fprintf(logfile ,"\n <<<=== TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");  
 	}
 
 

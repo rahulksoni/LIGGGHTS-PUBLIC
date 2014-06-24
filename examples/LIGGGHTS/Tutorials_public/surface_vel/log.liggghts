@@ -1,0 +1,174 @@
+LIGGGHTS (Version LIGGGHTS-PUBLIC 2.3.8, compiled 2014-05-29-16:27:12 by root based on LAMMPS 20 Apr 2012)
+#Conveyor (600C) and Chute
+atom_style granular
+atom_modify map array
+boundary f f f
+newton off
+
+communicate single vel yes
+
+units si
+
+region reg block 0.0 3.3 -0.3 0.8 -0.5 3.0 units box
+create_box 1 reg
+Created orthogonal box = (0 -0.3 -0.5) to (3.3 0.8 3)
+  2 by 1 by 2 MPI processor grid
+
+neighbor 0.01 bin
+neigh_modify delay 0
+
+#Material properties required for new pair styles
+
+fix m1 all property/global youngsModulus peratomtype 5.e6
+fix m2 all property/global poissonsRatio peratomtype 0.45
+fix m3 all property/global coefficientRestitution peratomtypepair 1 0.3
+fix m4 all property/global coefficientFriction peratomtypepair 1 0.5
+
+#heat transfer
+fix ftco all property/global thermalConductivity peratomtype 100.
+fix ftca all property/global thermalCapacity peratomtype 10.
+fix heattransfer all heat/gran initial_temperature 300.
+
+#New pair style
+pair_style gran/hertz/history #Hertzian without cohesion
+pair_coeff * *
+
+timestep 0.00001
+
+fix gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+#granular walls
+fix c1 all mesh/surface file conveyor_belt.stl type 1 temperature 600 surface_vel 4.0 0.0 0.0
+fix hood all mesh/surface file hood.stl type 1 curvature 0.01
+fix spoon all mesh/surface file spoon.stl type 1 curvature 1e-5
+fix inface all mesh/surface file insertion_face.stl type 1
+fix wall all wall/gran/hertz/history mesh n_meshes 3 meshes c1 hood spoon
+
+#distributions for insertion
+fix pts1 all particletemplate/sphere 1 atom_type 1 density constant 2500 radius constant 0.030
+fix pdd1 all particledistribution/discrete 1. 1 pts1 1.0
+
+#region for insertion
+group nve_group region reg
+0 atoms in group nve_group
+
+#particle insertion
+fix ins nve_group insert/stream seed 5330 distributiontemplate pdd1 maxattempt 100 nparticles 10000 massrate 100.0 overlapcheck yes vel constant 0. 0. -1.0 insertion_face inface extrude_length 0.5
+
+#apply nve integration to all particles that are inserted as single particles
+fix integr all nve/sphere
+
+#output settings, include total thermal energy
+fix ts all check/timestep/gran 1000 0.1 0.1
+compute rke all erotate/sphere
+thermo_style custom step atoms ke c_rke f_heattransfer
+thermo 1000
+thermo_modify lost ignore norm no
+compute_modify thermo_temp dynamic yes
+
+#insert the first particles so that dump is not empty
+run 1
+WARNING: Fix mesh: Mesh contains highly skewed element, moving mesh (if used) will not parallelize well (surface_mesh_I.h:484)
+WARNING: Fix mesh: Mesh contains highly skewed element, moving mesh (if used) will not parallelize well (surface_mesh_I.h:484)
+INFO: Particle insertion ins: 176.838826 particles every 50000 steps - particle rate 353.677651, (mass rate 100.000000)
+      10000 particles (mass 2827.433388) within 2800000 steps
+Memory usage per processor = 13.4807 Mbytes
+Step Atoms KinEng rke heattran 
+       0        0           -0            0            0 
+to be inserted: n = 0 
+INFO: Particle insertion ins: inserted 176 particle templates (mass 49.762828) at step 1
+ - a total of 176 particle templates (mass 49.762828) inserted so far [ nlocal = 0 ].
+       1      176    24.881414            0    149288.48 
+Loop time of 0.00912833 on 4 procs for 1 steps with 176 atoms
+
+Pair  time (%) = 1.49012e-06 (0.0163241)
+Neigh time (%) = 0.000121057 (1.32617)
+Comm  time (%) = 1.70469e-05 (0.186747)
+Outpt time (%) = 2.72989e-05 (0.299057)
+Other time (%) = 0.00896144 (98.1717)
+
+Nlocal:    44 ave 176 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+Neighs:    36.75 ave 147 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+
+Total # of neighbors = 147
+Ave neighs/atom = 0.835227
+Neighbor list builds = 1
+Dangerous builds = 0
+dump dmp all custom 1000 post/dump*.Con_ht id type type x y z ix iy iz vx vy vz fx fy fz omegax omegay omegaz radius f_Temp[0]
+dump dumpstl all mesh/stl 1000 post/dump*.stl
+
+#insert particles
+run 300000 upto
+
+ <<<=== FI:  setup(int vflag) 
+Memory usage per processor = 13.8628 Mbytes
+Step Atoms KinEng rke heattran 
+       1      176    24.881414            0    149288.48 
+    1000      176    24.881414            0    149288.48 
+    2000      176    24.881414            0    149288.48 
+    3000      176    24.881414            0    149288.48 
+    4000      176    25.004259            0    149288.48 
+    5000      176    25.287385            0    149288.48 
+    6000      176    25.741741            0    149288.48 
+    7000      176    26.340286            0    149288.48 
+    8000      176    27.041295            0    149288.48 
+    9000      176    27.857585            0    149288.48 
+   10000      176    28.825423            0    149288.48 
+   11000      176    29.945559            0    149288.48 
+   12000      176     31.31087            0    149288.48 
+   13000      176    32.833609            0    149288.48 
+   14000      176     34.48854            0    149288.48 
+   15000      176     36.33147            0    149288.48 
+   16000      176     38.39134            0    149288.48 
+   17000      176    40.659318            0    149288.48 
+   18000      176    43.124451            0    149288.48 
+   19000      176    45.828824            0    149288.48 
+   20000      176    48.837854            0    149288.48 
+   21000      176    52.085479            0    149288.48 
+   22000      176    55.633692            0    149288.48 
+   23000      176    59.434929            0    149288.48 
+   24000      176    63.523385            0    149288.48 
+   25000      176    67.925763            0    149288.48 
+   26000      176    68.447236     2.483887    149310.43 
+   27000      176    66.268872    4.3096694    149380.39 
+   28000      176    64.014183    6.6655121    149431.87 
+   29000      176    63.197989    8.1917473    149481.01 
+   30000      176    64.545899    9.0477866    149504.72 
+   31000      176    61.838995    9.1568408    149530.51 
+   32000      176    62.566964    8.2880916    149567.64 
+   33000      176    64.614988    9.6559365    149620.27 
+   34000      176    65.061286    10.800349    149712.48 
+   35000      176    66.608028    11.902937       149795 
+   36000      176    68.340726    11.940549     149806.7 
+   37000      176    67.409685    13.922184    149880.36 
+   38000      176    67.695339    15.167835    149970.77 
+   39000      176     67.88323    13.896972    150042.27 
+   40000      176    68.974108    14.418995    150132.73 
+   41000      176    68.290503    14.702444    150263.23 
+   42000      176    69.665913     16.36485    150363.29 
+   43000      176     72.44581    15.894296       150490 
+   44000      176    73.775646    17.428318    150616.51 
+   45000      176    70.771252    18.301836    150725.21 
+   46000      176    72.002927    18.034626    150872.13 
+   47000      176    69.487377    18.825077    151033.83 
+   48000      176    70.218594    19.619788    151184.72 
+   49000      176    71.278915    20.526966    151300.14 
+   50000      176    70.406133    21.568174    151433.09 
+to be inserted: n = 0 
+INFO: Particle insertion ins: inserted 177 particle templates (mass 50.045571) at step 50001
+ - a total of 353 particle templates (mass 99.808399) inserted so far [ nlocal = 0 ].
+   51000      353    94.658303     22.96031    301760.74 
+   52000      353    99.545368    24.081881    301980.26 
+   53000      353    100.75861    24.742737    302149.91 
+   54000      353    102.37476    25.295089    302331.56 
+   55000      353     104.6063    25.253471    302516.54 
+   56000      353    106.35129    25.939033    302680.76 
+   57000      353    108.24597    25.987929    302879.39 
+   58000      353    107.54266    26.929102    303085.42 
+   59000      353    109.48902    26.671904    303304.44 
+   60000      353    111.63471    28.336621    303544.56 
+   61000      353    114.93753    27.995
