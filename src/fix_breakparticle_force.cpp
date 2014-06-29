@@ -281,7 +281,7 @@ FixBreakparticleForce::FixBreakparticleForce(LAMMPS *lmp, int narg, char **arg) 
 						/*********************************************************************************************/
 
 					/*--------------------------------------------------------------------------------------------------*/
-					fstream SievesSelected;
+					fstream SievesSelected;   ///////
 					
 					SievesSelected.open("Sieves_selected", std::ios::out);	
 					SievesSelected<<"Sieves selected \n";
