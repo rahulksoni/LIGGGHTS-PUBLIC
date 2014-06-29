@@ -1440,7 +1440,7 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
 														if(screen) fprintf(screen ,"r_sphere[%d] = %f \n", daughter, r_sphere[daughter]);		
 														if(logfile) fprintf(logfile ,"r_sphere[%d] = %f \n", daughter, r_sphere[daughter]);
 
-														pti->set_r_mass_vol_rboundins(r_sphere[1]);
+														pti->set_r_mass_vol_rboundins(r_sphere[daughter]);
 																								
 														pti->scale_pti(1.0);  
 																			//rad_broken should be a relative values such 0.3 or 0.5//
