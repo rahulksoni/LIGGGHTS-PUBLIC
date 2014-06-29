@@ -1,0 +1,1326 @@
+LIGGGHTS (Version LIGGGHTS-PUBLIC 2.3.8, compiled 2014-02-22-15:12:57 by root based on LAMMPS 20 Apr 2012)
+atom_style	granular
+atom_modify	map array
+boundary	f f f
+newton		off
+
+communicate	single vel yes
+processors 	* * *
+
+units		si
+
+read_restart	tmp.restart.*
+WARNING: Restart file version does not match LIGGGHTS version (read_restart.cpp:470)
+  orthogonal box = (-0.7 -0.8 -1.6) to (0.7 0.8 1.2)
+  1 by 1 by 1 MPI processor grid
+  2979 atoms
+
+region		reg block -0.7 0.7 -0.8 0.8 -1.6 1.2. units box
+
+neighbor	0.004 bin
+neigh_modify 	every 1 delay 0 check yes
+
+#Material properties #First material is limestone and second is steel for balls and third is steel for mill
+fix 		m1 all property/global youngsModulus peratomtype 45.e9 200.e9 200.e9
+fix 		m2 all property/global poissonsRatio peratomtype 0.25 0.3 0.3
+fix 		m3 all property/global coefficientRestitution peratomtypepair 3 			 0.8 0.8 0.8 			 0.8 0.8 0.8       			 0.8 0.8 0.8
+fix 		m4 all property/global coefficientFriction peratomtypepair 3 			 0.77 0.47 0.47 			 0.47 0.62 0.62 			 0.47 0.62 0.62
+fix 		m5 all property/global characteristicVelocity scalar 0.5.
+
+
+#New pair style
+pair_style 	gran/hertz/history 
+pair_coeff	* *
+
+timestep	0.000001
+fix		ts_check all check/timestep/gran 100 0.1 0.1 reset yes
+4, resetflag = 1  
+
+fix		gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+#walls
+fix		boxwalls_x1 all wall/gran/hertz/history primitive type 1 xplane -0.6
+Resetting per-atom state of Fix history_boxwalls_x1 Style property/atom from restart file info
+fix		boxwalls_x2 all wall/gran/hertz/history primitive type 1 xplane +0.6
+Resetting per-atom state of Fix history_boxwalls_x2 Style property/atom from restart file info
+fix		boxwalls_y1 all wall/gran/hertz/history primitive type 1 yplane -0.7
+Resetting per-atom state of Fix history_boxwalls_y1 Style property/atom from restart file info
+fix		boxwalls_y2 all wall/gran/hertz/history primitive type 1 yplane +0.7
+Resetting per-atom state of Fix history_boxwalls_y2 Style property/atom from restart file info
+fix		boxwalls_z1 all wall/gran/hertz/history primitive type 1 zplane -1.5
+Resetting per-atom state of Fix history_boxwalls_z1 Style property/atom from restart file info
+fix		boxwalls_z2 all wall/gran/hertz/history primitive type 1 zplane +1.1
+Resetting per-atom state of Fix history_boxwalls_z2 Style property/atom from restart file info
+
+#import mesh from cad:
+group		Mill_shell_group region reg
+2979 atoms in group Mill_shell_group
+fix		Mill_shell Mill_shell_group mesh/surface file Shell.stl type 3  move 0. 0. 0. 		scale 0.001  rotate axis 0. 1. 0. angle 0.  rotate axis 0. 0. 1. angle 0.
+Resetting global state of Fix Mill_shell Style mesh/surface from restart file info
+group		Rotor_group region reg
+2979 atoms in group Rotor_group
+fix		Rotor Rotor_group mesh/surface file Rotor.stl type 3  move 0. 0. 0. 		scale 0.001  rotate axis 0. 1. 0. angle 0.  rotate axis 0. 0. 1. angle 0.
+Resetting global state of Fix Rotor Style mesh/surface from restart file info
+
+
+#use the imported mesh (drum) as granular wall
+fix		Shell_wall all wall/gran/hertz/history mesh n_meshes 1 meshes Mill_shell
+Resetting global state of Fix tracker_Mill_shell Style contacthistory/mesh from restart file info
+Resetting per-atom state of Fix tracker_Mill_shell Style contacthistory/mesh from restart file info
+fix		Rotor_wall all wall/gran/hertz/history mesh n_meshes 1 meshes Rotor
+Resetting global state of Fix tracker_Rotor Style contacthistory/mesh from restart file info
+Resetting per-atom state of Fix tracker_Rotor Style contacthistory/mesh from restart file info
+fix		inface all mesh/surface file insertion_face.stl type 1
+Resetting global state of Fix inface Style mesh/surface from restart file info
+
+#Setting up rotation
+fix		rotate_Rotor all move/mesh mesh Rotor rotate origin 0. 0. 0. axis -1. 0. 0. period 0.03. #2000 RPM
+Resetting global state of Fix rotate_Rotor Style move/mesh from restart file info
+
+
+
+
+
+
+
+#distributions for insertion
+fix		pts1 all particletemplate/sphere 1 atom_type 1 density constant 2700 radius constant 0.0125
+Resetting global state of Fix pts1 Style particletemplate/sphere from restart file info
+fix		pdd1 all particledistribution/discrete 1.  1 pts1 1.0 
+Resetting global state of Fix pdd1 Style particledistribution/discrete from restart file info
+
+#region for insertion
+group		particles region reg
+2979 atoms in group particles
+
+#particle insertion
+fix		insertion particles insert/stream seed 5330 distributiontemplate pdd1 		verbose yes maxattempt 100 nparticles INF particlerate 0.0125 start 1000 overlapcheck yes vel constant 0. 0. -1.0 		insertion_face inface extrude_length 0.4
+Resetting global state of Fix insertion Style insert/stream from restart file info
+Resetting per-atom state of Fix release_fix_insert_stream Style property/atom from restart file info
+
+
+
+
+
+#apply nve integration
+fix		integr all nve/sphere
+
+#restart file
+restart 10000 tmp.restart
+
+#output settings, include total thermal energy
+compute		1 all erotate/sphere
+thermo_style	custom step atoms ke c_1 vol
+thermo		10000
+thermo_modify	lost ignore norm no
+compute_modify	thermo_temp dynamic yes
+
+#dump 
+dump		dump_par all custom 10000 post/dump*.particles id type type x y z ix iy iz vx vy vz fx fy fz omegax omegay omegaz radius
+dump 		Mill_Rotor_dump all mesh/stl 10000 post/Mill*.stl all
+#dump 		Rotor_dump Rotor_group mesh/stl 100 post/Rotor*.stl Rotor
+
+#define fragments for particle breakage, particle radii are relative
+fix	       fragments all particletemplate/multiplespheres 1 atom_type 1 density constant 2700 nspheres 1 ntry 1000000 		spheres file fragmentfile_ECS scale 1.0
+Resetting global state of Fix fragments Style particletemplate/multiplespheres from restart file info
+
+#generating particles
+fix		pdfragments all particledistribution/discrete 1.  1 fragments 1.
+Resetting global state of Fix pdfragments Style particledistribution/discrete from restart file info
+
+#fix to break particle
+fix		break all breakparticle/force seed 10001 distributiontemplate pdfragments every 1 ECS_threshold 1.
+
+ Instructed to break based on ECS. 
+ Extracting the value of ECS_thresold. 
+
+ ECS_thresold extracted as 1.000000 kWh/ton and turned ECS flag to 1. 
+ 
+JK_parameter_A = 19.200000 	 JK_parameter_b = 1.862000 	 WI = 11.600000 	 C_GM = 0.048800 	 C_WI = -0.021700 	 C_intercept = 0.688100 	 alpha_intercept = 0.436380 
+ 
+min_parent_size_to_break = 0.006700 	 min_daughter_size = 0.003350 	 max_feed_particle_size = 0.025400 
+ 
+ ECS_max = 4.000000 	 conversion_factor_energy = 4.650000 J 	 conversion_factor_force = 1757.080000 N 	 conversion_factor = 7.35121e-10 
+ 
+ x_min = -0.450000 	 x_max = 0.450000 	 y_min = -0.350000 	 y_max = -0.160000 	 z_min = 0.550000 	 z_max = 0.950000 	 rot_axis = -1 
+ 
+bin_x_min = -0.450000 	 bin_x_max = 0.450000 	 bin_y_min = -0.550000 	 bin_y_max = 0.550000 	 bin_z_min = -1.350000 	 bin_z_max = -0.600000 	  
+ 
+
+ sieves_series_length = 40, index = 17, index_2 = 10 
+
+ Sieves 
+0.003350 	0.004750 	0.005600 	0.006700 	0.008000 	0.009500 	0.011200 	0.012500 	0.013200 	0.016000 	0.019000 	0.022400 	0.025000 	
+ 
+ 
+
+ 
+ Resetting global state of Fix break Style breakparticle/force from restart file info
+Resetting per-atom state of Fix break_break Style property/atom from restart file info
+
+#insert particles
+run		50000000
+Resetting global state of Fix contacthistory Style contacthistory from restart file info
+Resetting per-atom state of Fix contacthistory Style contacthistory from restart file info
+WARNING: Fix mesh: Mesh contains highly skewed element, moving mesh (if used) will not parallelize well (surface_mesh_I.h:484)
+INFO: Particle insertion insertion: 0.005000 particles every 400000 steps - particle rate 0.012500, (mass rate 0.000276)
+Memory usage per processor = 16.169 Mbytes
+Step Atoms KinEng 1 Volume 
+ 1710000     2979    7.1016886    2.2720056        6.272 
+WARNING: time-step is 45.012858 % of rayleigh time
+WARNING: resetting time-step to fraction_rayleigh_limit (10.000000 %) of rayleigh time: new time-step = 2.22159e-07 
+WARNING: time-step is  19.142252 % of hertz time
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+timestep size = 2.22159e-07 
+
+1 flags (mass = 0.022089 kg) out of 2979 turned to 1 at ntimestep = 1716637 
+n_break_this_local = 1, mass_break_this_local = 0.022089, n_break_this = 1, mass_break_this = 0.022089, n_break = 1, mass_break = 0.022089. 
+ 
+
+nlocal reduced from 2979 (2979 particles, mass = 1.145725) to 2978 (2978 particles, mass = 0.022089). 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1716638
+ - a total of 1 particles (mass 0.022089) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.025000 	 0.022089 	 1.027302 	 0.437600 	 16.364908 	 0.025000 	 	 88 	 	 	 0.007761 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+88 	
+Total = 88 
+  
+to be inserted: n = 88 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.007761) at step 1716638
+ - a total of 106 particle templates (mass 0.263925) inserted so far [ nlocal = 3066 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 87 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.022089 kg) out of 3066 turned to 1 at ntimestep = 1719564 
+n_break_this_local = 1, mass_break_this_local = 0.022089, n_break_this = 1, mass_break_this = 0.022089, n_break = 2, mass_break = 0.044179. 
+ 
+
+nlocal reduced from 3066 (3066 particles, mass = 1.131396) to 3065 (3065 particles, mass = 0.022089). 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1719565
+ - a total of 2 particles (mass 0.044179) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.025000 	 0.022089 	 1.009438 	 0.437600 	 16.269019 	 0.025000 	 	 87 	 	 	 0.007708 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+87 	
+Total = 87 
+  
+to be inserted: n = 87 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.007708) at step 1719565
+ - a total of 107 particle templates (mass 0.271632) inserted so far [ nlocal = 3152 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 86 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1720000     3152    8.0301093    2.0802447        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.001212 kg) out of 3152 turned to 1 at ntimestep = 1722523 
+n_break_this_local = 1, mass_break_this_local = 0.001212, n_break_this = 1, mass_break_this = 0.001212, n_break = 3, mass_break = 0.045391. 
+ 
+
+nlocal reduced from 3152 (3152 particles, mass = 1.117014) to 3151 (3151 particles, mass = 0.001212). 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1722524
+ - a total of 3 particles (mass 0.045391) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.009500 	 0.001212 	 1.038727 	 0.436844 	 16.424582 	 0.009500 	 	 8 	 	 	 0.000524 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+8 	
+Total = 8 
+  
+to be inserted: n = 8 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000524) at step 1722524
+ - a total of 108 particle templates (mass 0.272156) inserted so far [ nlocal = 3159 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 7 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000425 kg) out of 3159 turned to 1 at ntimestep = 1725160 
+n_break_this_local = 1, mass_break_this_local = 0.000425, n_break_this = 1, mass_break_this = 0.000425, n_break = 4, mass_break = 0.045816. 
+ 
+
+nlocal reduced from 3159 (3159 particles, mass = 1.116326) to 3158 (3158 particles, mass = 0.000425). 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1725161
+ - a total of 4 particles (mass 0.045816) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.006700 	 0.000425 	 1.054456 	 0.436707 	 16.504686 	 0.006700 	 	 3 	 	 	 0.000159 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+3 	
+Total = 3 
+  
+to be inserted: n = 3 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000159) at step 1725161
+ - a total of 109 particle templates (mass 0.272315) inserted so far [ nlocal = 3161 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 2 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1730000     3161    7.6140613    2.0404059        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000724 kg) out of 3161 turned to 1 at ntimestep = 1731459 
+n_break_this_local = 1, mass_break_this_local = 0.000724, n_break_this = 1, mass_break_this = 0.000724, n_break = 5, mass_break = 0.046540. 
+ 
+
+nlocal reduced from 3161 (3161 particles, mass = 1.116060) to 3160 (3160 particles, mass = 0.000724). 
+Particle breakage: broke 1 particles (mass 0.000724) at step 1731460
+ - a total of 5 particles (mass 0.046540) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.008000 	 0.000724 	 1.079790 	 0.436770 	 16.628875 	 0.008000 	 	 5 	 	 	 0.000266 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+5 	
+Total = 5 
+  
+to be inserted: n = 5 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000266) at step 1731460
+ - a total of 110 particle templates (mass 0.272581) inserted so far [ nlocal = 3165 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 4 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000425 kg) out of 3165 turned to 1 at ntimestep = 1732853 
+n_break_this_local = 1, mass_break_this_local = 0.000425, n_break_this = 1, mass_break_this = 0.000425, n_break = 6, mass_break = 0.046965. 
+ 
+
+nlocal reduced from 3165 (3165 particles, mass = 1.115602) to 3164 (3164 particles, mass = 0.000425). 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1732854
+ - a total of 6 particles (mass 0.046965) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.006700 	 0.000425 	 1.282577 	 0.436707 	 17.437464 	 0.006700 	 	 3 	 	 	 0.000159 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+3 	
+Total = 3 
+  
+to be inserted: n = 3 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000159) at step 1732854
+ - a total of 111 particle templates (mass 0.272741) inserted so far [ nlocal = 3167 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 2 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000724 kg) out of 3167 turned to 1 at ntimestep = 1738365 
+n_break_this_local = 1, mass_break_this_local = 0.000724, n_break_this = 1, mass_break_this = 0.000724, n_break = 7, mass_break = 0.047689. 
+ 
+
+nlocal reduced from 3167 (3167 particles, mass = 1.115336) to 3166 (3166 particles, mass = 0.000724). 
+Particle breakage: broke 1 particles (mass 0.000724) at step 1738366
+ - a total of 7 particles (mass 0.047689) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.008000 	 0.000724 	 1.002822 	 0.436770 	 16.232686 	 0.008000 	 	 4 	 	 	 0.000213 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+4 	
+Total = 4 
+  
+to be inserted: n = 4 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000213) at step 1738366
+ - a total of 112 particle templates (mass 0.272953) inserted so far [ nlocal = 3170 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 3 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1740000     3170    7.0302991    1.9359971        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.022089 kg) out of 3170 turned to 1 at ntimestep = 1748596 
+n_break_this_local = 1, mass_break_this_local = 0.022089, n_break_this = 1, mass_break_this = 0.022089, n_break = 8, mass_break = 0.069778. 
+ 
+
+nlocal reduced from 3170 (3170 particles, mass = 1.114825) to 3169 (3169 particles, mass = 0.022089). 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1748597
+ - a total of 8 particles (mass 0.069778) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.025000 	 0.022089 	 1.015382 	 0.437600 	 16.301275 	 0.025000 	 	 87 	 	 	 0.007708 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+87 	
+Total = 87 
+  
+to be inserted: n = 87 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.007708) at step 1748597
+ - a total of 113 particle templates (mass 0.280661) inserted so far [ nlocal = 3256 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 86 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1750000     3256      7.05815    1.9001271        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.022089 kg) out of 3256 turned to 1 at ntimestep = 1753798 
+n_break_this_local = 1, mass_break_this_local = 0.022089, n_break_this = 1, mass_break_this = 0.022089, n_break = 9, mass_break = 0.091867. 
+ 
+
+nlocal reduced from 3256 (3256 particles, mass = 1.100443) to 3255 (3255 particles, mass = 0.022089). 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1753799
+ - a total of 9 particles (mass 0.091867) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.025000 	 0.022089 	 1.008956 	 0.437600 	 16.266384 	 0.025000 	 	 87 	 	 	 0.007708 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+87 	
+Total = 87 
+  
+to be inserted: n = 87 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.007708) at step 1753799
+ - a total of 114 particle templates (mass 0.288369) inserted so far [ nlocal = 3342 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 86 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000724 kg) out of 3342 turned to 1 at ntimestep = 1759228 
+n_break_this_local = 1, mass_break_this_local = 0.000724, n_break_this = 1, mass_break_this = 0.000724, n_break = 10, mass_break = 0.092591. 
+ 
+
+nlocal reduced from 3342 (3342 particles, mass = 1.086062) to 3341 (3341 particles, mass = 0.000724). 
+Particle breakage: broke 1 particles (mass 0.000724) at step 1759229
+ - a total of 10 particles (mass 0.092591) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.008000 	 0.000724 	 1.013301 	 0.436770 	 16.290025 	 0.008000 	 	 5 	 	 	 0.000266 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+5 	
+Total = 5 
+  
+to be inserted: n = 5 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000266) at step 1759229
+ - a total of 115 particle templates (mass 0.288634) inserted so far [ nlocal = 3346 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 4 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1760000     3346    7.3227862    1.8618103        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000724 kg) out of 3346 turned to 1 at ntimestep = 1762066 
+n_break_this_local = 1, mass_break_this_local = 0.000724, n_break_this = 1, mass_break_this = 0.000724, n_break = 11, mass_break = 0.093315. 
+ 
+
+nlocal reduced from 3346 (3346 particles, mass = 1.085604) to 3345 (3345 particles, mass = 0.000724). 
+Particle breakage: broke 1 particles (mass 0.000724) at step 1762067
+ - a total of 11 particles (mass 0.093315) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.008000 	 0.000724 	 1.178440 	 0.436770 	 17.060319 	 0.008000 	 	 5 	 	 	 0.000266 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+5 	
+Total = 5 
+  
+to be inserted: n = 5 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000266) at step 1762067
+ - a total of 116 particle templates (mass 0.288900) inserted so far [ nlocal = 3350 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 4 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.001212 kg) out of 3350 turned to 1 at ntimestep = 1765888 
+n_break_this_local = 1, mass_break_this_local = 0.001212, n_break_this = 1, mass_break_this = 0.001212, n_break = 12, mass_break = 0.094527. 
+ 
+
+nlocal reduced from 3350 (3350 particles, mass = 1.085146) to 3349 (3349 particles, mass = 0.001212). 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1765889
+ - a total of 12 particles (mass 0.094527) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.009500 	 0.001212 	 1.076110 	 0.436844 	 16.611201 	 0.009500 	 	 8 	 	 	 0.000524 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+8 	
+Total = 8 
+  
+to be inserted: n = 8 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000524) at step 1765889
+ - a total of 117 particle templates (mass 0.289424) inserted so far [ nlocal = 3357 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 7 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000425 kg) out of 3357 turned to 1 at ntimestep = 1767210 
+n_break_this_local = 1, mass_break_this_local = 0.000425, n_break_this = 1, mass_break_this = 0.000425, n_break = 13, mass_break = 0.094952. 
+ 
+
+nlocal reduced from 3357 (3357 particles, mass = 1.084457) to 3356 (3356 particles, mass = 0.000425). 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1767211
+ - a total of 13 particles (mass 0.094952) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.006700 	 0.000425 	 1.234028 	 0.436707 	 17.270710 	 0.006700 	 	 3 	 	 	 0.000159 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+3 	
+Total = 3 
+  
+to be inserted: n = 3 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000159) at step 1767211
+ - a total of 118 particle templates (mass 0.289583) inserted so far [ nlocal = 3359 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 2 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1770000     3359     6.801581    1.8201561        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.001212 kg) out of 3359 turned to 1 at ntimestep = 1775271 
+n_break_this_local = 1, mass_break_this_local = 0.001212, n_break_this = 1, mass_break_this = 0.001212, n_break = 14, mass_break = 0.096164. 
+ 
+
+nlocal reduced from 3359 (3359 particles, mass = 1.084191) to 3358 (3358 particles, mass = 0.001212). 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1775272
+ - a total of 14 particles (mass 0.096164) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.009500 	 0.001212 	 1.067142 	 0.436844 	 16.567605 	 0.009500 	 	 8 	 	 	 0.000524 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+8 	
+Total = 8 
+  
+to be inserted: n = 8 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000524) at step 1775272
+ - a total of 119 particle templates (mass 0.290107) inserted so far [ nlocal = 3366 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 7 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000425 kg) out of 3366 turned to 1 at ntimestep = 1776680 
+n_break_this_local = 1, mass_break_this_local = 0.000425, n_break_this = 1, mass_break_this = 0.000425, n_break = 15, mass_break = 0.096590. 
+ 
+
+nlocal reduced from 3366 (3366 particles, mass = 1.083503) to 3365 (3365 particles, mass = 0.000425). 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1776681
+ - a total of 15 particles (mass 0.096590) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.006700 	 0.000425 	 1.070212 	 0.436707 	 16.582611 	 0.006700 	 	 3 	 	 	 0.000159 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+3 	
+Total = 3 
+  
+to be inserted: n = 3 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000159) at step 1776681
+ - a total of 120 particle templates (mass 0.290266) inserted so far [ nlocal = 3368 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 2 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.001212 kg) out of 3368 turned to 1 at ntimestep = 1778668 
+n_break_this_local = 1, mass_break_this_local = 0.001212, n_break_this = 1, mass_break_this = 0.001212, n_break = 16, mass_break = 0.097802. 
+ 
+
+nlocal reduced from 3368 (3368 particles, mass = 1.083237) to 3367 (3367 particles, mass = 0.001212). 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1778669
+ - a total of 16 particles (mass 0.097802) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.009500 	 0.001212 	 1.091475 	 0.436844 	 16.684213 	 0.009500 	 	 8 	 	 	 0.000524 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+8 	
+Total = 8 
+  
+to be inserted: n = 8 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000524) at step 1778669
+ - a total of 121 particle templates (mass 0.290790) inserted so far [ nlocal = 3375 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 7 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1780000     3375    6.3747576    1.7781715        6.272 
+ 1790000     3375    12.872682    4.8058819        6.272 
+ 1800000     3375    11.712752    3.7350384        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000724 kg) out of 3375 turned to 1 at ntimestep = 1805441 
+n_break_this_local = 1, mass_break_this_local = 0.000724, n_break_this = 1, mass_break_this = 0.000724, n_break = 17, mass_break = 0.098526. 
+ 
+
+nlocal reduced from 3375 (3375 particles, mass = 1.082549) to 3374 (3374 particles, mass = 0.000724). 
+Particle breakage: broke 1 particles (mass 0.000724) at step 1805442
+ - a total of 17 particles (mass 0.098526) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.008000 	 0.000724 	 1.036853 	 0.436770 	 16.414877 	 0.008000 	 	 5 	 	 	 0.000266 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+5 	
+Total = 5 
+  
+to be inserted: n = 5 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000266) at step 1805442
+ - a total of 122 particle templates (mass 0.291055) inserted so far [ nlocal = 3379 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 4 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1810000     3379    11.440565    3.6990088        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.022089 kg) out of 3379 turned to 1 at ntimestep = 1816657 
+n_break_this_local = 1, mass_break_this_local = 0.022089, n_break_this = 1, mass_break_this = 0.022089, n_break = 18, mass_break = 0.120615. 
+ 
+
+nlocal reduced from 3379 (3379 particles, mass = 1.082091) to 3378 (3378 particles, mass = 0.022089). 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1816658
+ - a total of 18 particles (mass 0.120615) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.025000 	 0.022089 	 1.004740 	 0.437600 	 16.243265 	 0.025000 	 	 87 	 	 	 0.007708 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+87 	
+Total = 87 
+  
+to be inserted: n = 87 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.007708) at step 1816658
+ - a total of 123 particle templates (mass 0.298763) inserted so far [ nlocal = 3465 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 86 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.001212 kg) out of 3465 turned to 1 at ntimestep = 1817975 
+n_break_this_local = 1, mass_break_this_local = 0.001212, n_break_this = 1, mass_break_this = 0.001212, n_break = 19, mass_break = 0.121827. 
+ 
+
+nlocal reduced from 3465 (3465 particles, mass = 1.067709) to 3464 (3464 particles, mass = 0.001212). 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1817976
+ - a total of 19 particles (mass 0.121827) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.009500 	 0.001212 	 1.082678 	 0.436844 	 16.642664 	 0.009500 	 	 8 	 	 	 0.000524 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+8 	
+Total = 8 
+  
+to be inserted: n = 8 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000524) at step 1817976
+ - a total of 124 particle templates (mass 0.299287) inserted so far [ nlocal = 3472 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 7 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000724 kg) out of 3472 turned to 1 at ntimestep = 1817988 
+n_break_this_local = 1, mass_break_this_local = 0.000724, n_break_this = 1, mass_break_this = 0.000724, n_break = 20, mass_break = 0.122551. 
+ 
+
+nlocal reduced from 3472 (3472 particles, mass = 1.067020) to 3471 (3471 particles, mass = 0.000724). 
+Particle breakage: broke 1 particles (mass 0.000724) at step 1817989
+ - a total of 20 particles (mass 0.122551) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.008000 	 0.000724 	 1.515834 	 0.436770 	 18.058402 	 0.008000 	 	 5 	 	 	 0.000266 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+5 	
+Total = 5 
+  
+to be inserted: n = 5 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000266) at step 1817989
+ - a total of 125 particle templates (mass 0.299552) inserted so far [ nlocal = 3476 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 4 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.022089 kg) out of 3476 turned to 1 at ntimestep = 1818706 
+n_break_this_local = 1, mass_break_this_local = 0.022089, n_break_this = 1, mass_break_this = 0.022089, n_break = 21, mass_break = 0.144640. 
+ 
+
+nlocal reduced from 3476 (3476 particles, mass = 1.066562) to 3475 (3475 particles, mass = 0.022089). 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1818707
+ - a total of 21 particles (mass 0.144640) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.025000 	 0.022089 	 1.026828 	 0.437600 	 16.362404 	 0.025000 	 	 88 	 	 	 0.007761 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+88 	
+Total = 88 
+  
+to be inserted: n = 88 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.007761) at step 1818707
+ - a total of 126 particle templates (mass 0.307313) inserted so far [ nlocal = 3563 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 87 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1820000     3563    13.166248    3.6631017        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.001212 kg) out of 3563 turned to 1 at ntimestep = 1820189 
+n_break_this_local = 1, mass_break_this_local = 0.001212, n_break_this = 1, mass_break_this = 0.001212, n_break = 22, mass_break = 0.145852. 
+ 
+
+nlocal reduced from 3563 (3563 particles, mass = 1.052234) to 3562 (3562 particles, mass = 0.001212). 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1820190
+ - a total of 22 particles (mass 0.145852) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.009500 	 0.001212 	 1.055703 	 0.436844 	 16.510939 	 0.009500 	 	 8 	 	 	 0.000524 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+8 	
+Total = 8 
+  
+to be inserted: n = 8 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000524) at step 1820190
+ - a total of 127 particle templates (mass 0.307837) inserted so far [ nlocal = 3570 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 7 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000425 kg) out of 3570 turned to 1 at ntimestep = 1820934 
+n_break_this_local = 1, mass_break_this_local = 0.000425, n_break_this = 1, mass_break_this = 0.000425, n_break = 23, mass_break = 0.146277. 
+ 
+
+nlocal reduced from 3570 (3570 particles, mass = 1.051545) to 3569 (3569 particles, mass = 0.000425). 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1820935
+ - a total of 23 particles (mass 0.146277) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.006700 	 0.000425 	 1.136050 	 0.436707 	 16.884589 	 0.006700 	 	 3 	 	 	 0.000159 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+3 	
+Total = 3 
+  
+to be inserted: n = 3 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000159) at step 1820935
+ - a total of 128 particle templates (mass 0.307996) inserted so far [ nlocal = 3572 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 2 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.022089 kg) out of 3572 turned to 1 at ntimestep = 1825208 
+n_break_this_local = 1, mass_break_this_local = 0.022089, n_break_this = 1, mass_break_this = 0.022089, n_break = 24, mass_break = 0.168367. 
+ 
+
+nlocal reduced from 3572 (3572 particles, mass = 1.051280) to 3571 (3571 particles, mass = 0.022089). 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1825209
+ - a total of 24 particles (mass 0.168367) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.025000 	 0.022089 	 1.022823 	 0.437600 	 16.341163 	 0.025000 	 	 87 	 	 	 0.007708 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+87 	
+Total = 87 
+  
+to be inserted: n = 87 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.007708) at step 1825209
+ - a total of 129 particle templates (mass 0.315704) inserted so far [ nlocal = 3658 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 86 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000425 kg) out of 3658 turned to 1 at ntimestep = 1825335 
+n_break_this_local = 1, mass_break_this_local = 0.000425, n_break_this = 1, mass_break_this = 0.000425, n_break = 25, mass_break = 0.168792. 
+ 
+
+nlocal reduced from 3658 (3658 particles, mass = 1.036898) to 3657 (3657 particles, mass = 0.000425). 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1825336
+ - a total of 25 particles (mass 0.168792) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.006700 	 0.000425 	 1.127424 	 0.436707 	 16.847101 	 0.006700 	 	 3 	 	 	 0.000159 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+3 	
+Total = 3 
+  
+to be inserted: n = 3 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000159) at step 1825336
+ - a total of 130 particle templates (mass 0.315863) inserted so far [ nlocal = 3660 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 2 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1830000     3660    96.023463    4.1202297        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000425 kg) out of 3660 turned to 1 at ntimestep = 1831256 
+n_break_this_local = 1, mass_break_this_local = 0.000425, n_break_this = 1, mass_break_this = 0.000425, n_break = 26, mass_break = 0.169217. 
+ 
+
+nlocal reduced from 3660 (3660 particles, mass = 1.036632) to 3659 (3659 particles, mass = 0.000425). 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1831257
+ - a total of 26 particles (mass 0.169217) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.006700 	 0.000425 	 1.264555 	 0.436707 	 17.377317 	 0.006700 	 	 3 	 	 	 0.000159 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+3 	
+Total = 3 
+  
+to be inserted: n = 3 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000159) at step 1831257
+ - a total of 131 particle templates (mass 0.316023) inserted so far [ nlocal = 3662 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 2 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000724 kg) out of 3662 turned to 1 at ntimestep = 1832093 
+n_break_this_local = 1, mass_break_this_local = 0.000724, n_break_this = 1, mass_break_this = 0.000724, n_break = 27, mass_break = 0.169941. 
+ 
+
+nlocal reduced from 3662 (3662 particles, mass = 1.036366) to 3661 (3661 particles, mass = 0.000724). 
+Particle breakage: broke 1 particles (mass 0.000724) at step 1832094
+ - a total of 27 particles (mass 0.169941) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.008000 	 0.000724 	 1.157660 	 0.436770 	 16.975908 	 0.008000 	 	 5 	 	 	 0.000266 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+5 	
+Total = 5 
+  
+to be inserted: n = 5 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000266) at step 1832094
+ - a total of 132 particle templates (mass 0.316288) inserted so far [ nlocal = 3666 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 4 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000425 kg) out of 3666 turned to 1 at ntimestep = 1832877 
+n_break_this_local = 1, mass_break_this_local = 0.000425, n_break_this = 1, mass_break_this = 0.000425, n_break = 28, mass_break = 0.170366. 
+ 
+
+nlocal reduced from 3666 (3666 particles, mass = 1.035908) to 3665 (3665 particles, mass = 0.000425). 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1832878
+ - a total of 28 particles (mass 0.170366) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.006700 	 0.000425 	 1.017713 	 0.436707 	 16.313832 	 0.006700 	 	 3 	 	 	 0.000159 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+3 	
+Total = 3 
+  
+to be inserted: n = 3 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000159) at step 1832878
+ - a total of 133 particle templates (mass 0.316448) inserted so far [ nlocal = 3668 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 2 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.001212 kg) out of 3668 turned to 1 at ntimestep = 1834776 
+n_break_this_local = 1, mass_break_this_local = 0.001212, n_break_this = 1, mass_break_this = 0.001212, n_break = 29, mass_break = 0.171578. 
+ 
+
+nlocal reduced from 3668 (3668 particles, mass = 1.035643) to 3667 (3667 particles, mass = 0.001212). 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1834777
+ - a total of 29 particles (mass 0.171578) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.009500 	 0.001212 	 1.420807 	 0.436844 	 17.837433 	 0.009500 	 	 8 	 	 	 0.000524 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+8 	
+Total = 8 
+  
+to be inserted: n = 8 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000524) at step 1834777
+ - a total of 134 particle templates (mass 0.316971) inserted so far [ nlocal = 3675 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 7 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.001212 kg) out of 3675 turned to 1 at ntimestep = 1839441 
+n_break_this_local = 1, mass_break_this_local = 0.001212, n_break_this = 1, mass_break_this = 0.001212, n_break = 30, mass_break = 0.172790. 
+ 
+
+nlocal reduced from 3675 (3675 particles, mass = 1.034954) to 3674 (3674 particles, mass = 0.001212). 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1839442
+ - a total of 30 particles (mass 0.172790) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.009500 	 0.001212 	 1.072960 	 0.436844 	 16.595969 	 0.009500 	 	 8 	 	 	 0.000524 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+8 	
+Total = 8 
+  
+to be inserted: n = 8 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000524) at step 1839442
+ - a total of 135 particle templates (mass 0.317495) inserted so far [ nlocal = 3682 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 7 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+ 1840000     3682     43.66819    9.7845802        6.272 
+ 1850000     3682    19.850389    6.1870644        6.272 
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000724 kg) out of 3682 turned to 1 at ntimestep = 1852830 
+n_break_this_local = 1, mass_break_this_local = 0.000724, n_break_this = 1, mass_break_this = 0.000724, n_break = 31, mass_break = 0.173514. 
+ 
+
+nlocal reduced from 3682 (3682 particles, mass = 1.034266) to 3681 (3681 particles, mass = 0.000724). 
+Particle breakage: broke 1 particles (mass 0.000724) at step 1852831
+ - a total of 31 particles (mass 0.173514) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.008000 	 0.000724 	 1.160250 	 0.436770 	 16.986608 	 0.008000 	 	 5 	 	 	 0.000266 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+5 	
+Total = 5 
+  
+to be inserted: n = 5 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.000266) at step 1852831
+ - a total of 136 particle templates (mass 0.317761) inserted so far [ nlocal = 3686 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 4 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.022089 kg) out of 3686 turned to 1 at ntimestep = 1854558 
+n_break_this_local = 1, mass_break_this_local = 0.022089, n_break_this = 1, mass_break_this = 0.022089, n_break = 32, mass_break = 0.195603. 
+ 
+
+nlocal reduced from 3686 (3686 particles, mass = 1.033807) to 3685 (3685 particles, mass = 0.022089). 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1854559
+ - a total of 32 particles (mass 0.195603) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.025000 	 0.022089 	 1.009414 	 0.437600 	 16.268883 	 0.025000 	 	 87 	 	 	 0.007708 
+
+ n_break_this_local = 1 
+ 
+ 
+
+ Number of daughters per break 
+87 	
+Total = 87 
+  
+to be inserted: n = 87 
+INFO: Particle insertion break: inserted 1 particle templates (mass 0.007708) at step 1854559
+ - a total of 137 particle templates (mass 0.325468) inserted so far [ nlocal = 3772 ].
+
+ 
+ Particle insertion: Less insertions than requested, lost 86 particles
+WARNING: Particle insertion: Less insertions than requested (fix_insert.cpp:880)
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------* 
+ 
+
+1 flags (mass = 0.000425 kg) out of 3772 turned to 1 at ntimestep = 1858125 
+n_break_this_local = 1, mass_break_this_local = 0.000425, n_break_this = 1, mass_break_this = 0.000425, n_break = 33, mass_break = 0.196029. 
+ 
+
+nlocal reduced from 3772 (3772 particles, mass = 1.019426) to 3771 (3771 particles, mass = 0.000425). 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1858126
+ - a total of 33 particles (mass 0.196029) broken so far 
+ 
+
+iparticle 	 size 	 	 mass 	 	 ECS 	 	 alpha 	 	 t10% 	 max_daughter_size 	 daughters_count 	 daughters_mass 
+0 	 	 0.006700 	 0.000425 	 1.379634 	 0

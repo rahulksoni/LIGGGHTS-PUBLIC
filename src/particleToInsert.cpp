@@ -42,7 +42,11 @@ ParticleToInsert::ParticleToInsert(LAMMPS* lmp,int ns) : Pointers(lmp)
 
         memory->create(x_ins,nspheres,3,"x_ins");
         radius_ins = new double[nspheres];
-   if(screen) fprintf(screen ,"\n <<<=== PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
+
+    if(screen) fprintf(screen ,"\n PTI: nspheres = %d \n", nspheres);
+    if(logfile) fprintf(logfile ,"\n PTI: nspheres = %d \n", nspheres);
+
+    if(screen) fprintf(screen ,"\n <<<=== PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
 	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  ParticleToInsert(LAMMPS* lmp,int ns) \n");
 }
 
@@ -160,6 +164,9 @@ int ParticleToInsert::set_x_v_omega(double *x, double *v, double *omega, double 
 	if(logfile) fprintf(logfile ,"\n ===>>> PTI:  set_x_v_omega(double *x, double *v, double *omega, double *quat) \n");
     // add insertion position
     // relative position of spheres to each other already stored at this point
+    if(screen) fprintf(screen ,"\n PTI: nspheres = %d \n", nspheres);
+    if(logfile) fprintf(logfile ,"\n PTI: nspheres = %d \n", nspheres);
+
     for(int j = 0; j < nspheres; j++)
         vectorAdd3D(x_ins[j],x,x_ins[j]);		//adds relative positions to exact positions//
 
@@ -184,6 +191,9 @@ void ParticleToInsert::set_r_mass_vol_rboundins(double r)
 	r_bound_ins = radius_ins[0];
     volume_ins = 4.0 * 3.14159265359 * radius_ins[0] * radius_ins[0] * radius_ins[0] / 3.0;
     mass_ins = volume_ins * density_ins;
+
+    if(logfile) fprintf(logfile ,"\n PTI:  set_r_mass_vol_rboundins: r = %f, vol = %f, mass = %f \n", radius_ins[0], volume_ins, mass_ins);
+    if(screen) fprintf(screen ,"\n PTI:  set_r_mass_vol_rboundins: r = %f, vol = %f, mass = %f \n", radius_ins[0], volume_ins, mass_ins);
     
 //    if(screen) fprintf(screen ,"\n <<<=== PTI:  set_r_mass_vol_rboundins(double *r_sphere) \n");
 //	if(logfile) fprintf(logfile ,"\n <<<=== PTI:  set_r_mass_vol_rboundins(double *r_sphere) \n");

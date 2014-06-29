@@ -1,0 +1,24 @@
+				#Only change the values and do not modify the sequences or line number#
+
+#Parameters for calculation of daughter distribution
+JK_A(>1,<100)	JK_b(>0,<10)	WI(>0,<100)	C_GM_alpha	C_WI_alpha	C_intercept_alpha			
+19.2			    1.862			11.6	  0.0488	 -0.0217		0.6881						
+
+#Minimum size conditions for breakage
+min_parent_size_to_break 	min_daughter_size	max_feed_particle_size
+0.0067						0.00335                 0.0254
+
+#Comminuton energy
+ECS_max(>ECS_thresold,<10) 	conversion_factor_energy(joule)		conversion_factor_force(Newton)
+4.0										4.65								1757.08
+
+#Geometry parameters (For insertion of particles retaining the sieve)
+x_min	x_max		y_min	y_max	z_min		z_max	rot_axis(1->x,2->y,3->z,-1->-x,-2->-y,-3->-z)	geometry(1->ball mill, 2->hammer mill)	
+-0.45	0.45	   -0.35 	-0.05	0.55		0.95		-1 													2
+
+#Mass distribution frequency
+10000
+
+#for hammer mill
+bin_x_min 	bin_x_max 	bin_y_min	 bin_y_max 	bin_z_min	 bin_z_max	passing_truncation(0->No, 1->Yes)
+-0.45		0.45		-0.55 		 0.55 		-1.35 			-0.6 	1

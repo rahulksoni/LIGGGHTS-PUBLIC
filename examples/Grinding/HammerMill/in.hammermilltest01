@@ -19,7 +19,7 @@ neigh_modify 		every 1 delay 0 check yes
 ##Variables
 variable 			par_radius equal 	0.032										#Feed particle radius
 variable 			feed_amount equal 50.0										#Total ampunt of material to be fed
-variable 			feed_rate equal 125000.0										#Feed rate in kg/h
+variable 			feed_rate equal 12500.0										#Feed rate in kg/h
 variable 			mill_rpm equal 1000.0											#Rotor speed
 variable 			Young_modulus_material equal 36.e9							#Young modulus of material to be ground for calculation of timestep
 variable 			Poisson_ratio_material equal 0.2    								#Poisson's ratio for the material
@@ -131,12 +131,13 @@ fix					integr all nve/sphere
 restart 				100000 tmp.restart
 
 #thermo variables
-variable				curr_m_percent equal mass(particles)/${feed_amount}*100					#current mass % (with to be fed) of charged particles
+variable				curr_m_percent equal mass(particles)/${feed_amount}*100					#current mass % 
 
 #thermo settings
+variable 			progress_percent equal step/${Num_steps_int}*100
 compute				1 all erotate/sphere
-print				"STEP		PARTICLES		KE		PE		ETOTAL 		Current_Mass_Percent"
-thermo_style			custom step atoms ke  pe etotal v_curr_m_percent
+print				"STEP	Progress%	PARTICLES		KE		PE		ETOTAL 		Current_Mass_Percent"
+thermo_style			custom step v_progress_percent atoms ke  pe etotal v_curr_m_percent
 thermo				1000
 thermo_modify		lost ignore norm no
 compute_modify		thermo_temp dynamic yes

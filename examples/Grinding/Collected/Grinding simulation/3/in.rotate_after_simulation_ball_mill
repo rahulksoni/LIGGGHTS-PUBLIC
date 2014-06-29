@@ -1,0 +1,90 @@
+
+
+
+#			NOTE: ATOM TYPES AND DENSITY FOR BALL AND PARTICLE MUST BE UPDATED IN BREAKAGE_VARIABLE.H			#
+
+
+
+atom_style	granular
+atom_modify	map array
+boundary	f f f
+newton		off
+
+communicate	single vel yes
+processors 	* * *
+
+units		si
+
+read_restart	tmp.restart.500006
+
+region		reg block -0.16 0.16 -0.16 0.16 -0.16 0.16. units box
+
+neighbor	0.00004 bin
+#neigh_modify 	every 2 delay 10 check yes
+neigh_modify	every 1 delay 0 check yes
+
+#Material properties #First material is limestone and second is steel for balls and third is steel for mill
+fix 		m1 all property/global youngsModulus peratomtype 45.e9 200.e9 200.e9
+fix 		m2 all property/global poissonsRatio peratomtype 0.25 0.3 0.3
+fix 		m3 all property/global coefficientRestitution peratomtypepair 3 &
+			 0.8 0.8 0.8 &
+			 0.8 0.8 0.8 &
+      			 0.8 0.8 0.8
+fix 		m4 all property/global coefficientFriction peratomtypepair 3 &
+			 0.77 0.47 0.47 &
+			 0.47 0.62 0.62 &
+			 0.47 0.62 0.62
+fix 		m5 all property/global characteristicVelocity scalar 0.5.
+
+
+#New pair style
+pair_style 	gran/hertz/history 
+pair_coeff	* *
+
+timestep	0.0000001
+
+fix		gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+#walls
+fix		boxwalls_x1 all wall/gran/hertz/history primitive type 1 xplane -0.155
+fix		boxwalls_x2 all wall/gran/hertz/history primitive type 1 xplane +0.155
+fix		boxwalls_y1 all wall/gran/hertz/history primitive type 1 yplane -0.155
+fix		boxwalls_y2 all wall/gran/hertz/history primitive type 1 yplane +0.155
+fix		boxwalls_z1 all wall/gran/hertz/history primitive type 1 zplane -0.155
+fix		boxwalls_z2 all wall/gran/hertz/history primitive type 1 zplane +1.155
+
+#import mesh from cad:
+group		cad_group_1 region reg
+fix		cad1 cad_group_1 mesh/surface file Ball_Mill.stl type 2  move 0. 0. 0. &
+		scale 0.001  rotate axis 0. 1. 0. angle 0.  rotate axis 0. 0. 1. angle 0.
+
+#use the imported mesh (drum) as granular wall
+fix		drum_mixer all wall/gran/hertz/history mesh n_meshes 1 meshes cad1
+
+#apply nve integration
+fix		integr all nve/sphere
+
+#output settings, include total thermal energy
+compute		1 all erotate/sphere
+thermo_style	custom step atoms ke c_1 vol
+thermo		1000
+thermo_modify	lost ignore norm no
+compute_modify	thermo_temp dynamic yes
+
+restart 100000 tmp.restart
+
+
+#insert the first particles so that dump is not empty
+dump		particles particles custom 10000 post/dump*.particles id type type x y z ix iy iz vx vy vz fx fy fz omegax omegay omegaz radius
+dump		balls balls custom 10000 post/dump*.balls id type type x y z ix iy iz vx vy vz fx fy fz omegax omegay omegaz radius
+dump 		mill cad_group_1 mesh/stl 100 post/mill*.stl cad1
+
+
+
+fix		rot_mill all move/mesh mesh cad1   rotate origin 0. 0. 0. axis 1. 0. 0. period 1.57. #38 rpm (50% of CS=77 rpm)
+
+
+
+#insert particles
+run		100000000 
+

@@ -661,45 +661,50 @@ void FixInsert::pre_exchange()
 
 		  // number of particles to insert this timestep
 		  ninsert_this = calc_ninsert_this();
+
+		  if(screen) fprintf(screen ,"\n FI: Setting ninsert_this = %d \n",ninsert_this);
+		  if(logfile) fprintf(logfile ,"\n FI: Setting ninsert_this = %d \n",ninsert_this);
 		  
 		//  if(screen) fprintf(screen ,"\n 6 \n");
      	//  if(logfile) fprintf(logfile ,"\n 6 \n");	 
      		  
 		  if(ECS_flag == 1)
-							{
-		//						if(screen) fprintf(screen ,"\n 7 \n");
-     	//	  if(logfile) fprintf(logfile ,"\n 7 \n");	
-								ninsert_this = ninsert_daughter;
+				{
+					//		if(screen) fprintf(screen ,"\n 7 \n");
+			     	//	  	if(logfile) fprintf(logfile ,"\n 7 \n");	
+					ninsert_this = ninsert_daughter;
 								
-		//						if(screen) fprintf(screen ,"\n 8 \n");
-     	//	  if(logfile) fprintf(logfile ,"\n 8 \n");	
-		//	  if(screen) fprintf(screen ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
-		//	  if(logfile) fprintf(logfile ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
-							}
+					//		if(screen) fprintf(screen ,"\n 8 \n");
+			     	//	  	if(logfile) fprintf(logfile ,"\n 8 \n");	
+						  	if(screen) fprintf(screen ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
+						  	if(logfile) fprintf(logfile ,"\n FI: Setting ninsert_this = ninsert_daughter where ninsert_daughter = %d \n",ninsert_daughter);
+				}
 		  	
 		  // limit to max number of particles that shall be inserted
 		  // to avoid that max # may be slightly exceeded by random processes
 		  // in fix_distribution->randomize_list, set exact_number to 1
 		  if(ninsert_exists && ninserted + ninsert_this >= ninsert)
 		  {
-		//	  if(screen) fprintf(screen ,"\n 9 \n");
-     	//	  if(logfile) fprintf(logfile ,"\n 9 \n");	
+			//	  if(screen) fprintf(screen ,"\n 9 \n");
+	     	//	  if(logfile) fprintf(logfile ,"\n 9 \n");	
      		  
 			  ninsert_this = ninsert - ninserted;
 			  
-		//	  if(screen) fprintf(screen ,"\n 10 \n");
-     	//	  if(logfile) fprintf(logfile ,"\n 10 \n");	
-     		  
+			//	  if(screen) fprintf(screen ,"\n 10 \n");
+	     	//	  if(logfile) fprintf(logfile ,"\n 10 \n");	
+	     		  
 			  if(ninsert_this < 0)
-				ninsert_this = 0;
+					ninsert_this = 0;
 			  exact_number = 1;
 			  
-		//	  if(screen) fprintf(screen ,"\n 11 \n");
-     	//	  if(logfile) fprintf(logfile ,"\n 11 \n");	
+			//	  if(screen) fprintf(screen ,"\n 11 \n");
+	     	//	  if(logfile) fprintf(logfile ,"\n 11 \n");	
 		  }
 
 		  // distribute ninsert_this across processors
 		  ninsert_this_local = distribute_ninsert_this(ninsert_this);
+		  if(screen) fprintf(screen ,"\n FI: ninsert_this_local = %d \n",ninsert_this_local);
+		  if(logfile) fprintf(logfile ,"\n FI: ninsert_this_local = %d \n",ninsert_this_local);
 		//  if(screen) fprintf(screen ,"\n 12 \n");
      	//  if(logfile) fprintf(logfile ,"\n 12 \n");	
 		  
@@ -797,6 +802,10 @@ void FixInsert::pre_exchange()
 		//  if(screen) fprintf(screen ,"\n 23 \n");
      	//  if(logfile) fprintf(logfile ,"\n 23 \n");	
 		  
+		  if(screen) fprintf(screen ,"\n FI: ninsert_this_local = %d, ninserted_this_local = %d, ninserted_spheres_this_local = %d, mass_inserted_this_local = %f \n", ninsert_this_local,ninserted_this_local, ninserted_spheres_this_local, mass_inserted_this_local);
+		  if(logfile) fprintf(logfile ,"\n FI: ninsert_this_local = %d, ninserted_this_local = %d, ninserted_spheres_this_local = %d, mass_inserted_this_local = %f \n", ninsert_this_local,ninserted_this_local, ninserted_spheres_this_local, mass_inserted_this_local);
+
+
 		  x_v_omega(ninsert_this_local,ninserted_this_local,ninserted_spheres_this_local,mass_inserted_this_local);
 		  
 		//		if(screen) fprintf(screen ,"\n 24 \n");
@@ -814,6 +823,9 @@ void FixInsert::pre_exchange()
 				{
 						error->all(FLERR,"Illegal ECS_flag value");
 				}
+
+		if(screen) fprintf(screen ,"\n FI: ninsert_this_local = %d, ninserted_this_local = %d, ninserted_spheres_this_local = %d, mass_inserted_this_local = %f \n", ninsert_this_local,ninserted_this_local, ninserted_spheres_this_local, mass_inserted_this_local);
+		if(logfile) fprintf(logfile ,"\n FI: ninsert_this_local = %d, ninserted_this_local = %d, ninserted_spheres_this_local = %d, mass_inserted_this_local = %f \n", ninsert_this_local,ninserted_this_local, ninserted_spheres_this_local, mass_inserted_this_local);
 
 		//		if(screen) fprintf(screen ,"\n 25 \n");
      	//	  if(logfile) fprintf(logfile ,"\n 25 \n");	
@@ -871,10 +883,12 @@ void FixInsert::pre_exchange()
 		  print_stats_during(ninserted_this,mass_inserted_this);
 
 		//	if(screen) fprintf(screen ,"\n 31 \n");
-     	//	if(logfile) fprintf(logfile ,"\n 31 \n");	
+     	//	if(logfile) fprintf(logfile ,"\n 31 \n");
+
+     	int lossed = 	ninsert_this-ninserted_this;
 
 		  if(ninserted_this < ninsert_this && comm->me == 0)
-			  error->warning(FLERR,"Particle insertion: Less insertions than requested, lost %d particles", ninsert_this-ninserted_this);
+			  error->warning(FLERR,"Particle insertion: Less insertions than requested, lost %d particles", lossed);
 
 		  // free local memory
 		  if(xnear) memory->destroy(xnear);

@@ -1,0 +1,36 @@
+				#Only change the values and do not modify the sequences or line number#
+
+#Parameters for calculation of daughter distribution
+JK_A(>1,<100)	JK_b(>0,<10)	WI(>0,<100)	C_GM_alpha	C_WI_alpha	C_intercept_alpha			
+19.2			    1.862			11.6	  0.0488	 -0.0217		0.6881						
+
+#Minimum size conditions for breakage
+min_parent_size_to_break 	min_daughter_size	max_feed_particle_size
+0.00335							0.0017                  0.0085
+
+#Comminuton energy
+ECS_max(>ECS_thresold,<10) 	conversion_factor_energy(joule)		conversion_factor_force(Newton)
+4.0										4.65								1757.08
+
+#Geometry parameters
+x_min	x_max	y_min	y_max	z_min	z_max	mill_axis(1->x-axis,2->y-axis,3->z-axis,-1->x-axis,-2->y-axis,-3->z-axis)
+-0.15	0.15	-0.15	0.15	-0.15	0.15		-1
+
+#Mass distribution
+1000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

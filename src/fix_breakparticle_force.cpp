@@ -67,7 +67,7 @@ std::fstream& GotoLine(std::fstream& myfile, unsigned int num)
     return myfile;
 }	
 
-/* ---------------------Function to write an array to a file------------------------- */
+/* --------------------------Function to write an array to a file---------------------------- */
 std::fstream& writefile(std::fstream& file, int nparticles, int ntimestep, double *array, int array_length, int array_type)
 {
 	if(file.is_open()) 
@@ -256,7 +256,7 @@ FixBreakparticleForce::FixBreakparticleForce(LAMMPS *lmp, int narg, char **arg) 
 						{
 							index_upper++;			//Nos. bigger than max_feed_particle_size
 						}
-					index_upper--;					//for safe side
+					//index_upper--;					//for safe side
 
 					if(screen) fprintf(screen ,"\n sieves_series_length = %d, index_lower = %d, index_upper = %d \n",sieves_series_length,index_lower,index_upper);
 					if(logfile) fprintf(logfile ,"\n sieves_series_length = %d, index_lower = %d, index_upper = %d \n",sieves_series_length,index_lower,index_upper);
@@ -348,7 +348,7 @@ FixBreakparticleForce::FixBreakparticleForce(LAMMPS *lmp, int narg, char **arg) 
 					assert(x_max > x_min);
 					assert(y_max > y_min);
 					assert(z_max > z_min);
-				//	assert(mill_axis == 1 || mill_axis == 2 || mill_axis == 3 || mill_axis == -1 || mill_axis == -2 || mill_axis == -3);	
+					//	assert(mill_axis == 1 || mill_axis == 2 || mill_axis == 3 || mill_axis == -1 || mill_axis == -2 || mill_axis == -3);	
 					assert(bin_x_max > bin_x_min);
 					assert(bin_y_max > bin_y_min);
 					assert(bin_z_max > bin_z_min);
@@ -748,21 +748,7 @@ void FixBreakparticleForce::end_of_step()
 					}
 			}					
 		
-		/*--------------Printing truncated mass to a file for use while restarting simulation----------------*/
-	/*	fstream MassDisTruncated;
-					
-		MassDisTruncated.open("mass_distribution_truncated", std::ios::out);	
-											
-		for(int j = 0; j < (sieves_series_length - index_lower - index_upper); j++)		
-				{
-						MassDisTruncated<<mass_distribution_truncated[j];
-						MassDisTruncated<<"\t";
-				}
-							
-		MassDisTruncated.close();	*/
-		/*----------------------------------------------------------------------------------------------------*/
-						
-
+				
 		if((ECS_flag == 1) && ((update->ntimestep == massdis_previous_ntimestep + massdis_nevery) || massdis_previous_ntimestep_flag == false))
 			//for printing the mass distribution with mass distribution frequency (number of steps)
 			{
@@ -797,7 +783,7 @@ void FixBreakparticleForce::end_of_step()
 							}		
 					}
 				
-		//		for(int i = 1; i < (sieves_series_length - index_lower - index_upper); i++)	mass_distribution[i] += mass_distribution_truncated[i];			//adds the truncated mass	
+				for(int i = 1; i < (sieves_series_length - index_lower - index_upper); i++)	mass_distribution[i] += mass_distribution_truncated[i];			//adds the truncated mass	
 
 				/*--------------------------Prints differential mass distribution----------------------------*/										
 				fstream diff_massdistribution;
@@ -811,9 +797,10 @@ void FixBreakparticleForce::end_of_step()
 					}	
 								
 				writefile(diff_massdistribution, previous_particles_count, update->ntimestep, mass_distribution, sieves_series_length - index_lower - index_upper, 1); 
+				diff_massdistribution.close();
 				/*--------------------------------------------------------------------------------------------*/
 								
-		//		for(int i = 1; i < (sieves_series_length - index_lower - index_upper); i++)	mass_distribution[i] += mass_distribution[i-1];			//converts to cumulative mass distribution				
+				for(int i = 1; i < (sieves_series_length - index_lower - index_upper); i++)	mass_distribution[i] += mass_distribution[i-1];			//converts to cumulative mass distribution				
 						
 				/*-------------------------Prints cumulative mass distribution-------------------------------*/										
 				fstream cum_massdistribution;
@@ -827,9 +814,24 @@ void FixBreakparticleForce::end_of_step()
 					}	
 								
 				writefile(cum_massdistribution, previous_particles_count, update->ntimestep, mass_distribution, sieves_series_length - index_lower - index_upper, 1);
-								
-				massdis_previous_ntimestep = update->ntimestep;
+				cum_massdistribution.close();	
 				/*--------------------------------------------------------------------------------------------*/
+
+				/*--------------Printing truncated mass to a file for use while restarting simulation----------------*/
+				fstream MassDisTruncated;
+					
+				MassDisTruncated.open("mass_distribution_truncated", std::ios::out);	
+											
+				for(int j = 0; j < (sieves_series_length - index_lower - index_upper); j++)		
+					{
+						MassDisTruncated<<mass_distribution_truncated[j];
+						MassDisTruncated<<"\t";
+					}
+									
+				MassDisTruncated.close();	
+				/*----------------------------------------------------------------------------------------------------*/
+
+				massdis_previous_ntimestep = update->ntimestep;
 			}			
 					
 		if(flag_count > 0)
@@ -845,8 +847,8 @@ void FixBreakparticleForce::end_of_step()
 				if(screen) fprintf(screen, "\n%d flags (mass = %f kg) out of %d  turned to 1 at ntimestep = %d \n", flag_count,rmass_break,nlocal,update->ntimestep);
 				if(logfile) fprintf(logfile, "\n%d flags (mass = %f kg) out of %d turned to 1 at ntimestep = %d \n", flag_count,rmass_break,nlocal,update->ntimestep);
 			}
-if(screen) fprintf(screen ,"\n Exiting function end_of_step(). \n \n");
-if(logfile) fprintf(logfile ,"\n Exiting function end_of_step(). \n \n");	
+		if(screen) fprintf(screen ,"\n Exiting function end_of_step(). \n \n");
+		if(logfile) fprintf(logfile ,"\n Exiting function end_of_step(). \n \n");	
 	}
 
 /* ---------------------------------------------------------------------- */
@@ -974,14 +976,14 @@ void FixBreakparticleForce::pre_insert()
 										//putting radius value in 7th column//
 								  breakdata[ibreak][7] = rmass[i] * 3.0 / ( 4.0 * pi * radius[i] * radius[i] * radius[i]);	//density
 							
-							////	  fprintf(screen, "density = %f \n",rmass[i] * 3.0 / ( 4.0 * pi * radius[i] * radius[i] * radius[i]));
-							////	  fprintf(screen, " breakdata[ibreak = %d][7] = %f \n",  ibreak, breakdata[ibreak][7]);
-							////	  fprintf(logfile, "density = %f \n",rmass[i] * 3.0 / ( 4.0 * pi * radius[i] * radius[i] * radius[i]));
-							////	  fprintf(logfile, " breakdata[ibreak = %d][7] = %f \n",  ibreak, breakdata[ibreak][7]);
-								  
-							////	  breakdata[ibreak][8] = particle_type[i];  //type
-								  
-							////	  breakdata[ibreak][9] = rmass[i];
+									////	  fprintf(screen, "density = %f \n",rmass[i] * 3.0 / ( 4.0 * pi * radius[i] * radius[i] * radius[i]));
+									////	  fprintf(screen, " breakdata[ibreak = %d][7] = %f \n",  ibreak, breakdata[ibreak][7]);
+									////	  fprintf(logfile, "density = %f \n",rmass[i] * 3.0 / ( 4.0 * pi * radius[i] * radius[i] * radius[i]));
+									////	  fprintf(logfile, " breakdata[ibreak = %d][7] = %f \n",  ibreak, breakdata[ibreak][7]);
+										  
+									////	  breakdata[ibreak][8] = particle_type[i];  //type
+										  
+									////	  breakdata[ibreak][9] = rmass[i];
 															  
 								  EI_particle = conversion_factor * sqrt(vectorMag3DSquared(f[i]));
 									
@@ -989,18 +991,17 @@ void FixBreakparticleForce::pre_insert()
 										//Calulating ECS acting on the particle//In kWh/ton//	
 													
 								  ECS[ibreak] = ECS_particle;
-							////	fprintf(screen, "ECS_particle = %f \n", ECS_particle);
-							////	fprintf(logfile, "ECS_particle = %f \n", ECS_particle);
+									////	fprintf(screen, "ECS_particle = %f \n", ECS_particle);
+									////	fprintf(logfile, "ECS_particle = %f \n", ECS_particle);
 								  breakdata[ibreak][8] = ECS_particle;
 								  
-							////	  if(screen) fprintf(screen ,"deleting particles: i = %d, ibreak = %d, Size = %.8g m, EI = %.8g kWh, ECS = %.8g kWh/ton, f = %f N, rmass = %.8g kg,atom_type = %d, density = %f. \n",i,ibreak,size[ibreak],EI_particle,ECS[ibreak],sqrt(vectorMag3DSquared(f[ibreak])),rmass[ibreak],parent_particle_atom_type[ibreak], parent_particle_density[ibreak]  );
-							////	  if(logfile) fprintf(logfile ,"deleting particles: i = %d, ibreak = %d, Size = %.8g m, EI = %.8g kWh, ECS = %.8g kWh/ton, f = %f N, rmass = %.8g kg,atom_type = %d, density = %f. \n",i,ibreak,size[ibreak],EI_particle,ECS[ibreak],sqrt(vectorMag3DSquared(f[ibreak])),rmass[ibreak],parent_particle_atom_type[ibreak], parent_particle_density[ibreak] );
-																												
-							////	if(screen) fprintf(screen ,"del par: i = %d, ibreak = %d, Size = %f m, density = %f, ECS = %f kWh/ton, f = %f N, rmass = %f kg \n",i,ibreak,2.0*breakdata[ibreak][6],breakdata[ibreak][7], breakdata[ibreak][8],sqrt(vectorMag3DSquared(f[i])),rmass[i]);
-							////	if(logfile) fprintf(logfile ,"del par: i = %d, ibreak = %d, Size = %f m, density = %f, ECS = %f kWh/ton, f = %f N, rmass = %f kg \n",i,ibreak,2.0*breakdata[ibreak][6],breakdata[ibreak][7], breakdata[ibreak][8],sqrt(vectorMag3DSquared(f[i])),rmass[i]);																				
+									////	  if(screen) fprintf(screen ,"deleting particles: i = %d, ibreak = %d, Size = %.8g m, EI = %.8g kWh, ECS = %.8g kWh/ton, f = %f N, rmass = %.8g kg,atom_type = %d, density = %f. \n",i,ibreak,size[ibreak],EI_particle,ECS[ibreak],sqrt(vectorMag3DSquared(f[ibreak])),rmass[ibreak],parent_particle_atom_type[ibreak], parent_particle_density[ibreak]  );
+									////	  if(logfile) fprintf(logfile ,"deleting particles: i = %d, ibreak = %d, Size = %.8g m, EI = %.8g kWh, ECS = %.8g kWh/ton, f = %f N, rmass = %.8g kg,atom_type = %d, density = %f. \n",i,ibreak,size[ibreak],EI_particle,ECS[ibreak],sqrt(vectorMag3DSquared(f[ibreak])),rmass[ibreak],parent_particle_atom_type[ibreak], parent_particle_density[ibreak] );
+																														
+									////	if(screen) fprintf(screen ,"del par: i = %d, ibreak = %d, Size = %f m, density = %f, ECS = %f kWh/ton, f = %f N, rmass = %f kg \n",i,ibreak,2.0*breakdata[ibreak][6],breakdata[ibreak][7], breakdata[ibreak][8],sqrt(vectorMag3DSquared(f[i])),rmass[i]);
+									////	if(logfile) fprintf(logfile ,"del par: i = %d, ibreak = %d, Size = %f m, density = %f, ECS = %f kWh/ton, f = %f N, rmass = %f kg \n",i,ibreak,2.0*breakdata[ibreak][6],breakdata[ibreak][7], breakdata[ibreak][8],sqrt(vectorMag3DSquared(f[i])),rmass[i]);																				
 										 
-								 
-								  // delete existing particle that is going to be broken//
+								    // delete existing particle that is going to be broken//
 								  avec->copy(nlocal-1,i,0);  
 								  
 								  /*
@@ -1129,9 +1130,9 @@ int FixBreakparticleForce::calc_ninsert_this()
 											number_of_sieves_smaller++;			//counting the number of sieves sizes smaller than the current ith particle					
 											ii++;
 										}
-														
-									//	if(screen) fprintf(screen ,"\n Number of sieves selected = %d \n",number_of_sieves_smaller);
-									//	if(logfile) fprintf(logfile ,"\n Number of sieves selected = %d \n",number_of_sieves_smaller);
+
+									if(screen) fprintf(screen ,"\n Number of sieves selected = %d \n",number_of_sieves_smaller);
+									if(logfile) fprintf(logfile ,"\n Number of sieves selected = %d \n",number_of_sieves_smaller);
 															
 									int number_particles_per_size_class[number_of_sieves_smaller];		//to record the number of particles per size smaller than the ith particle size
 										
@@ -1141,8 +1142,8 @@ int FixBreakparticleForce::calc_ninsert_this()
 											number_particles_per_size_class[count] = 0;
 										}
 									
-									//	if(screen) fprintf(screen ,"\n size_class \t num_par \t Diff_tn \t  \t cum_Diff_tn \t cum_ninsert_daughter_iparticle \t cum_mass \n");
-									//	if(logfile) fprintf(logfile ,"\n size_class \t num_par \t Diff_tn \t  \t cum_Diff_tn \t cum_ninsert_daughter_iparticle \t cum_mass \n");
+									if(screen) fprintf(screen ,"\n size_class \t num_par \t Diff_tn \t  \t cum_Diff_tn \t cum_ninsert_daughter_iparticle \t cum_mass \n");
+									if(logfile) fprintf(logfile ,"\n size_class \t num_par \t Diff_tn \t  \t cum_Diff_tn \t cum_ninsert_daughter_iparticle \t cum_mass \n");
 									
 									bool exact_match_max_size = true;		//true if the top size of the number_particles_per_size_class array equals to the ith particle size
 									if(size_iparticle > (1.01 * sieves[number_of_sieves_smaller - 1])) exact_match_max_size = false;
@@ -1178,10 +1179,8 @@ int FixBreakparticleForce::calc_ninsert_this()
 																n_previous = size_iparticle / sieves[ii];
 																power_previous = pow((9.0/(n_previous-1.0)),alpha);
 																Diff_tn += 1 - (1.0-pow((1.0-t10),power_previous));
-															}
-														
-														assert(Diff_tn >= 0.0);
-																																					
+															}														
+														assert(Diff_tn >= 0.0);																																					
 													}else 
 													{
 														error->all(FLERR,"Illegal ECS_flag value");
@@ -1197,8 +1196,8 @@ int FixBreakparticleForce::calc_ninsert_this()
 																				
 												cum_ninsert_daughter_iparticle += number_particles;		//incrementing the number of particles to-be generated for ith particle
 																																
-										//		if(screen) fprintf(screen ," %f \t \t %d \t \t %f \t \t %f \t \t \t %d \t \t \t \t %f \n",sieves[ii], number_particles_per_size_class[ii], Diff_tn,cum_Diff_tn,cum_ninsert_daughter_iparticle, cum_mass);
-										//		if(logfile) fprintf(logfile ," %f \t \t %d \t \t %f \t \t %f \t \t \t %d \t \t \t \t %f \n",sieves[ii], number_particles_per_size_class[ii], Diff_tn,cum_Diff_tn,cum_ninsert_daughter_iparticle, cum_mass);
+												if(screen) fprintf(screen ," %f \t \t %d \t \t %f \t \t %f \t \t \t %d \t \t \t \t %f \n",sieves[ii], number_particles_per_size_class[ii], Diff_tn,cum_Diff_tn,cum_ninsert_daughter_iparticle, cum_mass);
+												if(logfile) fprintf(logfile ," %f \t \t %d \t \t %f \t \t %f \t \t \t %d \t \t \t \t %f \n",sieves[ii], number_particles_per_size_class[ii], Diff_tn,cum_Diff_tn,cum_ninsert_daughter_iparticle, cum_mass);
 																																
 												ii++;
 										}
@@ -1248,9 +1247,18 @@ int FixBreakparticleForce::calc_ninsert_this()
 									size_r_sphere += cum_ninsert_daughter_iparticle;		//incrementing the index to show size of the r_sphere array to match the current size of r_sphere
 									number_per_break[iparticle] = cum_ninsert_daughter_iparticle;		//assigning fragments number to appropriate size of number_per_break array
 									cum_ninsert_daughter += cum_ninsert_daughter_iparticle;			//incrementing the total fragments to-be generated
-										
-									if(screen) fprintf(screen ,"%d \t \t %f \t %f \t %f \t %f \t %f \t %f \t \t %d \t \t \t %f \n", iparticle, size_iparticle,mass_iparticle,ECS_iparticle,alpha,t10_in_percent,max_daughter_size, cum_ninsert_daughter_iparticle, cum_mass);
-									if(logfile) fprintf(logfile ,"%d \t \t %f \t %f \t %f \t %f \t %f \t %f \t \t %d \t \t \t %f \n", iparticle, size_iparticle,mass_iparticle,ECS_iparticle,alpha,t10_in_percent,max_daughter_size,cum_ninsert_daughter_iparticle, cum_mass);
+
+									if(screen) fprintf(screen ,"%d \t \t %f \t %f \t %f \t %f \t %f \t %f \t \t %d \t \t \t %f \n \n", iparticle, size_iparticle,mass_iparticle,ECS_iparticle,alpha,t10_in_percent,max_daughter_size, cum_ninsert_daughter_iparticle, cum_mass);
+									if(logfile) fprintf(logfile ,"%d \t \t %f \t %f \t %f \t %f \t %f \t %f \t \t %d \t \t \t %f \n \n", iparticle, size_iparticle,mass_iparticle,ECS_iparticle,alpha,t10_in_percent,max_daughter_size,cum_ninsert_daughter_iparticle, cum_mass);
+
+									for(int mm=0; mm<cum_ninsert_daughter; mm++)
+										{
+											if(screen) fprintf(screen ,"r_sphere[%d] = %f \t", mm, r_sphere[mm]);
+											if(logfile) fprintf(logfile ,"r_sphere[%d] = %f \t", mm, r_sphere[mm]);
+										}
+									
+									if(screen) fprintf(screen ,"Total number of fragments to insert in this loop = %d", cum_ninsert_daughter);
+									if(logfile) fprintf(logfile ,"Total number of fragments to insert in this loop = %d", cum_ninsert_daughter);
 										
 									iparticle++;	//while loop increment//
 						}
@@ -1258,15 +1266,18 @@ int FixBreakparticleForce::calc_ninsert_this()
 /********************************************************************************************************************************************************/
 				ninsert_daughter = cum_ninsert_daughter;		//ninsert_daughter is the total number of fragments to-be generated for breakage of all eligible parent particles
 			}
+
+		if(screen) fprintf(screen ,"\nn_break_this = %d \n",n_break_this);
+		if(logfile) fprintf(logfile ,"\nn_break_this = %d \n",n_break_this);
 	
+		if(screen) fprintf(screen ,"\n Exiting function calc_ninsert_this(). \n");
+		if(logfile) fprintf(logfile ,"\n Exiting function calc_ninsert_this(). \n");
 
 		// number of ptis to insert this timestep
 		// will effectively insert n_break_this * n_fragments spheres
+	
 		return n_break_this;
 
-		if(screen) fprintf(screen ,"\n Exiting function calc_ninsert_this(). \n");
-		if(logfile) fprintf(logfile ,"\n Exiting function calc_ninsert_this(). \n");
-		
 	}
 
 /* ----------------------------------------------------------------------
@@ -1340,8 +1351,7 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
 													//pti_list is double array of class ParticleToInsert (defined in fix_particledistribution_discrete.h, class defined in particletoinsert.h)//
 													//See in particleToInsert.h where class ParticleToInsert is defined//
 													//pti_list contains details of particle properties of one particle, pti is class pointer of particletoinsert//
-													//so, particle properties from fix_distribution or indirectly from fix_particledistribution_discrete.h is being transferred to ParticleToInsert class//
-																	
+													//so, particle properties from fix_distribution or indirectly from fix_particledistribution_discrete.h is being transferred to ParticleToInsert class//																	
 											pti->scale_pti(rad_broken);  
 													//scaling the fragments obtained from fragment file in the simulation folder to the actual parent size (fragments given in file are for parent size of 1 unit)
 													//	if(screen) fprintf(screen ,"\n D \n");
@@ -1418,7 +1428,7 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
 																			//rad_broken = breakdata[iparticle][6];			
 																			//copies original particle radius to rad_broken//
 																																				
-														/********************Most impornat part that controls the creation of new particles***********************/
+														/********************Most important part that controls the creation of new particles***********************/
 																			// get pti and scale it down with radius of broken particle
 														pti = fix_distribution->pti_list[daughter];   
 																			//fixdistribution is a class pointer to FixParticledistributionDiscrete (declared in fix_insert.h, class defined in fix_particledistribution_discrete.h)//
@@ -1427,7 +1437,10 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
 																			//pti_list contains details of particle properties of one particle, pti is class pointer of particletoinsert//
 																			//so, particle properties from fix_distribution or indirectly from fix_particledistribution_discrete.h is being transferred to ParticleToInsert class//
 																			
-														pti->set_r_mass_vol_rboundins(r_sphere[daughter]);
+														if(screen) fprintf(screen ,"r_sphere[%d] = %f \n", daughter, r_sphere[daughter]);		
+														if(logfile) fprintf(logfile ,"r_sphere[%d] = %f \n", daughter, r_sphere[daughter]);
+
+														pti->set_r_mass_vol_rboundins(r_sphere[1]);
 																								
 														pti->scale_pti(1.0);  
 																			//rad_broken should be a relative values such 0.3 or 0.5//
@@ -1454,7 +1467,7 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
 																	{
 																		jj++;
 																	}
-												//				mass_distribution_truncated[jj] += density_particle * 4.0 * pi * r_sphere[daughter] * r_sphere[daughter] * r_sphere[daughter] / 3.0;
+																mass_distribution_truncated[jj] += density_particle * 4.0 * pi * r_sphere[daughter] * r_sphere[daughter] * r_sphere[daughter] / 3.0;
 															}else
 															{
 																if(regenerate_in_bin_switch == false)
@@ -1477,7 +1490,7 @@ void FixBreakparticleForce::x_v_omega(int ninsert_this,int &ninserted_this, int 
 																							//fixdistribution is a class pointer to FixParticledistributionDiscrete (declared in fix_insert.h, class defined in fix_particledistribution_discrete.h)//
 																							//pti_list is double array of class ParticleToInsert (defined in fix_particledistribution_discrete.h, class defined in particletoinsert.h)//
 																							//See in particleToInsert.h where class ParticleToInsert is defined//
-																							//pti_list contains details of particle properties of one particle, pti is class pointer of particletoinsert//
+																							//pt+i_list contains details of particle properties of one particle, pti is class pointer of particletoinsert//
 																							//so, particle properties from fix_distribution or indirectly from fix_particledistribution_discrete.h is being transferred to ParticleToInsert class//
 																							
 																		pti->set_r_mass_vol_rboundins(r_sphere[daughter]);

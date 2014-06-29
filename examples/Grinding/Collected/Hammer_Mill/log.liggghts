@@ -1,0 +1,178 @@
+LIGGGHTS (Version LIGGGHTS-PUBLIC 2.3.8, compiled 2014-02-22-15:12:57 by root based on LAMMPS 20 Apr 2012)
+atom_style	granular
+atom_modify	map array
+boundary	f f f
+newton		off
+
+communicate	single vel yes
+processors 	* * *
+
+units		si
+
+read_restart	tmp.restart.*
+WARNING: Restart file version does not match LIGGGHTS version (read_restart.cpp:470)
+  orthogonal box = (-0.7 -0.8 -1.6) to (0.7 0.8 1.2)
+  1 by 1 by 1 MPI processor grid
+  2979 atoms
+
+region		reg block -0.7 0.7 -0.8 0.8 -1.6 1.2. units box
+
+neighbor	0.004 bin
+neigh_modify 	every 1 delay 0 check yes
+
+#Material properties #First material is limestone and second is steel for balls and third is steel for mill
+fix 		m1 all property/global youngsModulus peratomtype 45.e9 200.e9 200.e9
+fix 		m2 all property/global poissonsRatio peratomtype 0.25 0.3 0.3
+fix 		m3 all property/global coefficientRestitution peratomtypepair 3 			 0.8 0.8 0.8 			 0.8 0.8 0.8       			 0.8 0.8 0.8
+fix 		m4 all property/global coefficientFriction peratomtypepair 3 			 0.77 0.47 0.47 			 0.47 0.62 0.62 			 0.47 0.62 0.62
+fix 		m5 all property/global characteristicVelocity scalar 0.5.
+
+
+#New pair style
+pair_style 	gran/hertz/history 
+pair_coeff	* *
+
+timestep	0.000001
+fix		ts_check all check/timestep/gran 100 0.1 0.1 reset yes
+4, resetflag = 1  
+
+fix		gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+#walls
+fix		boxwalls_x1 all wall/gran/hertz/history primitive type 1 xplane -0.6
+Resetting per-atom state of Fix history_boxwalls_x1 Style property/atom from restart file info
+fix		boxwalls_x2 all wall/gran/hertz/history primitive type 1 xplane +0.6
+Resetting per-atom state of Fix history_boxwalls_x2 Style property/atom from restart file info
+fix		boxwalls_y1 all wall/gran/hertz/history primitive type 1 yplane -0.7
+Resetting per-atom state of Fix history_boxwalls_y1 Style property/atom from restart file info
+fix		boxwalls_y2 all wall/gran/hertz/history primitive type 1 yplane +0.7
+Resetting per-atom state of Fix history_boxwalls_y2 Style property/atom from restart file info
+fix		boxwalls_z1 all wall/gran/hertz/history primitive type 1 zplane -1.5
+Resetting per-atom state of Fix history_boxwalls_z1 Style property/atom from restart file info
+fix		boxwalls_z2 all wall/gran/hertz/history primitive type 1 zplane +1.1
+Resetting per-atom state of Fix history_boxwalls_z2 Style property/atom from restart file info
+
+#import mesh from cad:
+group		Mill_shell_group region reg
+2979 atoms in group Mill_shell_group
+fix		Mill_shell Mill_shell_group mesh/surface file Shell.stl type 3  move 0. 0. 0. 		scale 0.001  rotate axis 0. 1. 0. angle 0.  rotate axis 0. 0. 1. angle 0.
+Resetting global state of Fix Mill_shell Style mesh/surface from restart file info
+group		Rotor_group region reg
+2979 atoms in group Rotor_group
+fix		Rotor Rotor_group mesh/surface file Rotor.stl type 3  move 0. 0. 0. 		scale 0.001  rotate axis 0. 1. 0. angle 0.  rotate axis 0. 0. 1. angle 0.
+Resetting global state of Fix Rotor Style mesh/surface from restart file info
+
+
+#use the imported mesh (drum) as granular wall
+fix		Shell_wall all wall/gran/hertz/history mesh n_meshes 1 meshes Mill_shell
+Resetting global state of Fix tracker_Mill_shell Style contacthistory/mesh from restart file info
+Resetting per-atom state of Fix tracker_Mill_shell Style contacthistory/mesh from restart file info
+fix		Rotor_wall all wall/gran/hertz/history mesh n_meshes 1 meshes Rotor
+Resetting global state of Fix tracker_Rotor Style contacthistory/mesh from restart file info
+Resetting per-atom state of Fix tracker_Rotor Style contacthistory/mesh from restart file info
+fix		inface all mesh/surface file insertion_face.stl type 1
+Resetting global state of Fix inface Style mesh/surface from restart file info
+
+#Setting up rotation
+fix		rotate_Rotor all move/mesh mesh Rotor rotate origin 0. 0. 0. axis -1. 0. 0. period 0.03. #2000 RPM
+Resetting global state of Fix rotate_Rotor Style move/mesh from restart file info
+
+
+
+
+
+
+
+#distributions for insertion
+fix		pts1 all particletemplate/sphere 1 atom_type 1 density constant 2700 radius constant 0.0125
+Resetting global state of Fix pts1 Style particletemplate/sphere from restart file info
+fix		pdd1 all particledistribution/discrete 1.  1 pts1 1.0 
+Resetting global state of Fix pdd1 Style particledistribution/discrete from restart file info
+
+#region for insertion
+group		particles region reg
+2979 atoms in group particles
+
+#particle insertion
+fix		insertion particles insert/stream seed 5330 distributiontemplate pdd1 		verbose yes maxattempt 100 nparticles INF particlerate 0.0125 start 1000 overlapcheck yes vel constant 0. 0. -1.0 		insertion_face inface extrude_length 0.4
+Resetting global state of Fix insertion Style insert/stream from restart file info
+Resetting per-atom state of Fix release_fix_insert_stream Style property/atom from restart file info
+
+
+
+
+
+#apply nve integration
+fix		integr all nve/sphere
+
+#restart file
+restart 10000 tmp.restart
+
+#output settings, include total thermal energy
+compute		1 all erotate/sphere
+thermo_style	custom step atoms ke c_1 vol
+thermo		10000
+thermo_modify	lost ignore norm no
+compute_modify	thermo_temp dynamic yes
+
+#dump 
+dump		dump_par all custom 10000 post/dump*.particles id type type x y z ix iy iz vx vy vz fx fy fz omegax omegay omegaz radius
+dump 		Mill_Rotor_dump all mesh/stl 10000 post/Mill*.stl all
+#dump 		Rotor_dump Rotor_group mesh/stl 100 post/Rotor*.stl Rotor
+
+#define fragments for particle breakage, particle radii are relative
+fix	       fragments all particletemplate/multiplespheres 1 atom_type 1 density constant 2700 nspheres 1 ntry 1000000 		spheres file fragmentfile_ECS scale 1.0
+Resetting global state of Fix fragments Style particletemplate/multiplespheres from restart file info
+
+#generating particles
+fix		pdfragments all particledistribution/discrete 1.  1 fragments 1.
+Resetting global state of Fix pdfragments Style particledistribution/discrete from restart file info
+
+#fix to break particle
+fix		break all breakparticle/force seed 10001 distributiontemplate pdfragments every 1 ECS_threshold 1.
+
+ Instructed to break based on ECS. 
+ Extracting the value of ECS_thresold. 
+
+ ECS_thresold extracted as 1.000000 kWh/ton and turned ECS flag to 1. 
+ 
+JK_parameter_A = 19.200000 	 JK_parameter_b = 1.862000 	 WI = 11.600000 	 C_GM = 0.048800 	 C_WI = -0.021700 	 C_intercept = 0.688100 	 alpha_intercept = 0.436380 
+ 
+min_parent_size_to_break = 0.006700 	 min_daughter_size = 0.003350 	 max_feed_particle_size = 0.025400 
+ 
+ ECS_max = 4.000000 	 conversion_factor_energy = 4.650000 J 	 conversion_factor_force = 1757.080000 N 	 conversion_factor = 7.35121e-10 
+ 
+ x_min = -0.450000 	 x_max = 0.450000 	 y_min = -0.350000 	 y_max = -0.160000 	 z_min = 0.550000 	 z_max = 0.950000 	 rot_axis = -1 
+ 
+bin_x_min = -0.450000 	 bin_x_max = 0.450000 	 bin_y_min = -0.550000 	 bin_y_max = 0.550000 	 bin_z_min = -1.350000 	 bin_z_max = -0.600000 	  
+ 
+
+ sieves_series_length = 40, index = 17, index_2 = 10 
+
+ Sieves 
+0.003350 	0.004750 	0.005600 	0.006700 	0.008000 	0.009500 	0.011200 	0.012500 	0.013200 	0.016000 	0.019000 	0.022400 	0.025000 	
+ 
+ 
+
+ 
+ Resetting global state of Fix break Style breakparticle/force from restart file info
+Resetting per-atom state of Fix break_break Style property/atom from restart file info
+
+#insert particles
+run		50000000
+Resetting global state of Fix contacthistory Style contacthistory from restart file info
+Resetting per-atom state of Fix contacthistory Style contacthistory from restart file info
+WARNING: Fix mesh: Mesh contains highly skewed element, moving mesh (if used) will not parallelize well (surface_mesh_I.h:484)
+INFO: Particle insertion insertion: 0.005000 particles every 400000 steps - particle rate 0.012500, (mass rate 0.000276)
+Memory usage per processor = 16.169 Mbytes
+Step Atoms KinEng 1 Volume 
+ 1710000     2979    7.1016886    2.2720056        6.272 
+WARNING: time-step is 45.012858 % of rayleigh time
+WARNING: resetting time-step to fraction_rayleigh_limit (10.000000 %) of rayleigh time: new time-step = 2.22159e-07 
+WARNING: time-step is  19.142252 % of hertz time
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------------------------*

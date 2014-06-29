@@ -1,0 +1,76 @@
+atom_style	granular
+atom_modify	map array
+boundary	f f f
+newton		off
+
+communicate	single vel yes
+
+units		si
+
+processors	* * *
+
+region		reg block -0.2 0.2 -0.1 0.1  0.0 1. units box
+read_restart	packing.restart
+
+neighbor	0.01 bin
+neigh_modify	delay 0
+
+#Material properties required for new pair styles
+
+fix 		m1 all property/global youngsModulus peratomtype 5.e6
+fix 		m2 all property/global poissonsRatio peratomtype 0.45
+fix 		m3 all property/global coefficientRestitution peratomtypepair 1 0.6
+fix 		m4 all property/global coefficientFriction peratomtypepair 1 0.5
+fix 		m5 all property/global characteristicVelocity scalar 2.
+
+#New pair style
+pair_style 	gran/hertz/history 
+pair_coeff	* *
+
+timestep	0.00001
+
+fix		gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+#walls
+fix		boxwalls_x1 all wall/gran/hertz/history primitive type 1 xplane -0.2
+fix		boxwalls_x2 all wall/gran/hertz/history primitive type 1 xplane +0.2
+fix		boxwalls_y1 all wall/gran/hertz/history primitive type 1 yplane -0.1
+fix		boxwalls_y2 all wall/gran/hertz/history primitive type 1 yplane +0.1
+fix		boxwalls_z1 all wall/gran/hertz/history primitive type 1 zplane -0.0
+fix		boxwalls_z2 all wall/gran/hertz/history primitive type 1 zplane +1.0
+
+#Single particle insertion
+region		bc_1 block -0.1 0.1 -0.08 0.08 0.7 0.95 units box
+group		nve_group_1 region reg
+fix			ins_1 nve_group_1 pour/legacy 1 1 1 vol 0.5 5000 diam 0.010 0.010 dens 2700 2700 vel 0. 0. 0. 0. -0.0. region bc_1
+
+#apply nve integration
+fix		integr all nve/sphere
+
+#output settings, include total thermal energy
+compute		1 all erotate/sphere
+thermo_style		custom step atoms ke c_1 vol
+thermo			1000
+thermo_modify		lost ignore norm no
+compute_modify	thermo_temp dynamic yes
+
+#insert the first particles so that dump is not empty
+dump		dmp all custom 1000 post/dump*.break id type type x y z ix iy iz vx vy vz fx fy fz omegax omegay omegaz radius
+
+#insert single particle with high velocity
+#create_atoms	1 single 0.0 0.0 0.8 units box
+#region		top block -0.2 0.2 -0.1 0.1  0.58 1. units box
+#group		top region top
+#set		group top diameter 0.5 density 2500. vx 0. vy 0. vz -0.1
+
+#define fragments for particle breakage, particle radii are relative
+fix		fragments all particletemplate/multiplespheres 1 atom_type 1 density constant 2500 nspheres 10 ntry 1000000 &
+		spheres file fragmentfile scale 1.0
+fix		pdfragments all particledistribution/discrete 1.  1 fragments 1
+
+#fix to break particle
+fix		break all breakparticle/force seed 10001 distributiontemplate pdfragments every 100 force_threshold 1.
+
+run 		1
+
+run		1000000

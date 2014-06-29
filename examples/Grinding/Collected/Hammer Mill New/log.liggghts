@@ -1,0 +1,401 @@
+LIGGGHTS (Version LIGGGHTS-PUBLIC 2.3.8, compiled 2014-05-17-16:43:55 by root based on LAMMPS 20 Apr 2012)
+atom_style	granular
+atom_modify	map array
+boundary	f f f
+newton		off
+
+communicate	single vel yes
+processors 	* * *
+
+units		si
+
+read_restart	tmp.restart.*
+WARNING: Restart file version does not match LIGGGHTS version (read_restart.cpp:470)
+WARNING: Restart file used different # of processors (read_restart.cpp:517)
+  orthogonal box = (-0.7 -0.8 -1.6) to (0.7 0.8 1.2)
+  1 by 2 by 2 MPI processor grid
+  77 atoms
+
+region		reg block -0.7 0.7 -0.8 0.8 -1.6 1.2. units box
+
+neighbor	0.004 bin
+neigh_modify 	every 1 delay 0 check yes
+
+#Material properties #First material is limestone and second is steel for balls and third is steel for mill
+fix 		m1 all property/global youngsModulus peratomtype 45.e9 200.e9 200.e9
+fix 		m2 all property/global poissonsRatio peratomtype 0.25 0.3 0.3
+fix 		m3 all property/global coefficientRestitution peratomtypepair 3 			 0.6 0.6 0.6 			 0.6 0.6 0.6       			 0.6 0.6 0.6
+fix 		m4 all property/global coefficientFriction peratomtypepair 3 			 0.77 0.47 0.47 			 0.47 0.62 0.62 			 0.47 0.62 0.62
+fix 		m5 all property/global characteristicVelocity scalar 0.5.
+
+
+#New pair style
+pair_style 	gran/hertz/history 
+pair_coeff	* *
+
+timestep	0.000001
+fix		ts_check all check/timestep/gran 100 0.1 0.1 reset yes
+4, resetflag = 1  
+
+fix		gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+#walls
+fix		boxwalls_x1 all wall/gran/hertz/history primitive type 1 xplane -0.6
+Resetting per-atom state of Fix history_boxwalls_x1 Style property/atom from restart file info
+fix		boxwalls_x2 all wall/gran/hertz/history primitive type 1 xplane +0.6
+Resetting per-atom state of Fix history_boxwalls_x2 Style property/atom from restart file info
+fix		boxwalls_y1 all wall/gran/hertz/history primitive type 1 yplane -0.7
+Resetting per-atom state of Fix history_boxwalls_y1 Style property/atom from restart file info
+fix		boxwalls_y2 all wall/gran/hertz/history primitive type 1 yplane +0.7
+Resetting per-atom state of Fix history_boxwalls_y2 Style property/atom from restart file info
+fix		boxwalls_z1 all wall/gran/hertz/history primitive type 1 zplane -1.5
+Resetting per-atom state of Fix history_boxwalls_z1 Style property/atom from restart file info
+fix		boxwalls_z2 all wall/gran/hertz/history primitive type 1 zplane +1.1
+Resetting per-atom state of Fix history_boxwalls_z2 Style property/atom from restart file info
+
+#import mesh from cad:
+group		Mill_shell_group region reg
+77 atoms in group Mill_shell_group
+
+#fix		Mill_shell Mill_shell_group mesh/surface file Shell_all.stl type 3  move 0. 0. 0. #		scale 0.001  rotate axis 0. 1. 0. angle 0.  rotate axis 0. 0. 1. angle 0.
+fix		Mill_shell Mill_shell_group mesh/surface file Shell_all_no_bin.stl type 3  move 0. 0. 0. 		scale 0.001  rotate axis 0. 1. 0. angle 0.  rotate axis 0. 0. 1. angle 0.
+Resetting global state of Fix Mill_shell Style mesh/surface from restart file info
+
+group		Rotor_group region reg
+77 atoms in group Rotor_group
+fix		Rotor Rotor_group mesh/surface file Rotor.stl type 3  move 0. 0. 0. 		scale 0.001  rotate axis 0. 1. 0. angle 0.  rotate axis 0. 0. 1. angle 0.
+Resetting global state of Fix Rotor Style mesh/surface from restart file info
+
+#use the imported mesh (drum) as granular wall
+fix		Shell_wall all wall/gran/hertz/history mesh n_meshes 1 meshes Mill_shell
+Resetting global state of Fix tracker_Mill_shell Style contacthistory/mesh from restart file info
+Resetting per-atom state of Fix tracker_Mill_shell Style contacthistory/mesh from restart file info
+fix		Rotor_wall all wall/gran/hertz/history mesh n_meshes 1 meshes Rotor
+Resetting global state of Fix tracker_Rotor Style contacthistory/mesh from restart file info
+Resetting per-atom state of Fix tracker_Rotor Style contacthistory/mesh from restart file info
+fix		inface all mesh/surface file insertion_face.stl type 1
+Resetting global state of Fix inface Style mesh/surface from restart file info
+
+#Setting up rotation
+fix		rotate_Rotor all move/mesh mesh Rotor rotate origin 0. 0. 0. axis -1. 0. 0. period 0.03. #2000 RPM
+Resetting global state of Fix rotate_Rotor Style move/mesh from restart file info
+
+
+
+
+
+
+
+#distributions for insertion
+fix		pts1 all particletemplate/sphere 1 atom_type 1 density constant 2700 radius constant 0.0125
+Resetting global state of Fix pts1 Style particletemplate/sphere from restart file info
+fix		pdd1 all particledistribution/discrete 1.  1 pts1 1.0 
+Resetting global state of Fix pdd1 Style particledistribution/discrete from restart file info
+
+#region for insertion
+group		particles region reg
+77 atoms in group particles
+
+#particle insertion
+fix		insertion particles insert/stream seed 5330 distributiontemplate pdd1 		verbose yes maxattempt 100 mass INF massrate 1.0 start 1000 overlapcheck yes vel constant 0. 0. -1.0 		insertion_face inface extrude_length 0.4
+Resetting global state of Fix insertion Style insert/stream from restart file info
+Resetting per-atom state of Fix release_fix_insert_stream Style property/atom from restart file info
+
+#unfix		insertion
+
+
+#apply nve integration
+fix		integr all nve/sphere
+
+#restart file
+restart 10000 tmp.restart
+
+#output settings, include total thermal energy
+compute		1 all erotate/sphere
+thermo_style	custom step atoms ke c_1 vol
+thermo		1000
+thermo_modify	lost ignore norm no
+compute_modify	thermo_temp dynamic yes
+
+#dump 
+dump		dump_par all custom 10000 post/dump*.particles id type type x y z ix iy iz vx vy vz fx fy fz omegax omegay omegaz radius
+dump 		Mill_Rotor_dump all mesh/stl 10000 post/Mill*.stl all
+#dump 		Rotor_dump Rotor_group mesh/stl 100 post/Rotor*.stl Rotor
+
+#define fragments for particle breakage, particle radii are relative
+fix	       fragments all particletemplate/multiplespheres 1 atom_type 1 density constant 2700 nspheres 1 ntry 1000000 		spheres file fragmentfile_ECS scale 1.0
+Resetting global state of Fix fragments Style particletemplate/multiplespheres from restart file info
+
+#generating particles
+fix		pdfragments all particledistribution/discrete 1.  1 fragments 1.
+Resetting global state of Fix pdfragments Style particledistribution/discrete from restart file info
+
+#fix to break particle
+fix		break all breakparticle/force seed 10001 distributiontemplate pdfragments every 1 ECS_threshold 1.
+
+ Instructed to break based on ECS. 
+ Extracting the value of ECS_thresold. 
+
+ ECS_thresold extracted as 1.000000 kWh/ton and turned ECS flag to 1. 
+ 
+JK_parameter_A = 19.200000 	 JK_parameter_b = 1.862000 	 WI = 11.600000 	 C_GM = 0.048800 	 C_WI = -0.021700 	 C_intercept = 0.688100 	 alpha_intercept = 0.436380 
+ 
+min_parent_size_to_break = 0.006700 	 min_daughter_size = 0.003350 	 max_feed_particle_size = 0.025400 
+ 
+ ECS_max = 4.000000 	 conversion_factor_energy = 4.650000 J 	 conversion_factor_force = 1757.080000 N 	 conversion_factor = 7.35121e-10 
+ 
+ x_min = -0.450000 	 x_max = 0.450000 	 y_min = -0.350000 	 y_max = -0.050000 	 z_min = 0.550000 	 z_max = 0.950000 	 mill_axis = -1 
+ 
+
+ sieves_series_length = 40, index = 17, index_2 = 10 
+
+ Sieves 
+0.003350 	0.004750 	0.005600 	0.006700 	0.008000 	0.009500 	0.011200 	0.012500 	0.013200 	0.016000 	0.019000 	0.022400 	0.025000 	
+ 
+ 
+
+ 
+ Resetting global state of Fix break Style breakparticle/force from restart file info
+Resetting per-atom state of Fix break_break Style property/atom from restart file info
+
+#insert particles
+run		50000000
+Resetting global state of Fix contacthistory Style contacthistory from restart file info
+Resetting per-atom state of Fix contacthistory Style contacthistory from restart file info
+INFO: Particle insertion insertion: 18.108296 particles every 400000 steps - particle rate 45.270739, (mass rate 1.000000)
+Memory usage per processor = 3.11689 Mbytes
+Step Atoms KinEng 1 Volume 
+ 1480000       77    1.3525273   0.34771033        6.272 
+WARNING: time-step is 22.506429 % of rayleigh time
+WARNING: resetting time-step to fraction_rayleigh_limit (10.000000 %) of rayleigh time: new time-step = 4.44317e-07 
+WARNING: time-step is  10.091914 % of hertz time
+ 1481000       77    1.3542546   0.34771033        6.272 
+ 1482000       77    1.3560193   0.34771033        6.272 
+ 1483000       77    1.3578213   0.34771033        6.272 
+ 1484000       77    1.3596607   0.34771033        6.272 
+ 1485000       77    1.3394256   0.35302344        6.272 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1485100
+ - a total of 1 particles (mass 0.000425) broken so far 
+ 
+ 1486000       76    1.3394143   0.35302344        6.272 
+ 1487000       76    1.3410236   0.35302344        6.272 
+ 1488000       76    1.3426702   0.35302344        6.272 
+ 1489000       76    1.3443541   0.35302344        6.272 
+ 1490000       76    1.3460754   0.35302344        6.272 
+ 1491000       76    1.3480409   0.35302344        6.272 
+ 1492000       76    1.3500566   0.35302344        6.272 
+ 1493000       76    1.3521118   0.35302344        6.272 
+ 1494000       76    1.3542065   0.35302344        6.272 
+ 1495000       76    1.3563406   0.35302344        6.272 
+ 1496000       76    1.3585142   0.35302344        6.272 
+ 1497000       76    1.3607272   0.35302344        6.272 
+ 1498000       76    1.3629798   0.35302344        6.272 
+ 1499000       76    1.3652717   0.35302344        6.272 
+ 1500000       76    1.3676032   0.35302344        6.272 
+ 1501000       76    1.3701762   0.35302344        6.272 
+ 1502000       76    1.3728063   0.35302344        6.272 
+ 1503000       76    1.3753654   0.35303988        6.272 
+ 1504000       76     1.378072   0.35303988        6.272 
+ 1505000       76    1.3801624   0.35306153        6.272 
+ 1506000       76    1.3827423    0.3530023        6.272 
+ 1507000       76    1.3855264   0.35301313        6.272 
+ 1508000       76    1.3883704   0.35301313        6.272 
+ 1509000       76    1.3912559   0.35301313        6.272 
+ 1510000       76    1.3941831   0.35301313        6.272 
+ 1511000       76    1.3937134   0.35309975        6.272 
+ 1512000       76    1.3966853   0.35309975        6.272 
+ 1513000       76    1.3979592   0.35318959        6.272 
+ 1514000       76    1.4009942   0.35318959        6.272 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1514141
+ - a total of 2 particles (mass 0.001637) broken so far 
+ 
+ 1515000       75     1.401609    0.3531728        6.272 
+ 1516000       75    1.4047041    0.3531728        6.272 
+ 1517000       75    1.4078407    0.3531728        6.272 
+ 1518000       75    1.4110188    0.3531728        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1518733
+ - a total of 3 particles (mass 0.023727) broken so far 
+ 
+ 1519000       74    1.4030016   0.35317854        6.272 
+ 1520000       74    1.4062554   0.35317854        6.272 
+ 1521000       74    1.4084546   0.35319204        6.272 
+ 1522000       74    1.4116843   0.35319478        6.272 
+ 1523000       74    1.4150312   0.35319478        6.272 
+ 1524000       74    1.4184571   0.35319478        6.272 
+ 1525000       74    1.4221051   0.35319478        6.272 
+ 1526000       74    1.4174764   0.35320736        6.272 
+ 1527000       74    1.4212391   0.35320736        6.272 
+ 1528000       74    1.4250455   0.35320736        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1528600
+ - a total of 4 particles (mass 0.045816) broken so far 
+ 
+ 1529000       73    1.3918054   0.34655055        6.272 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1529886
+ - a total of 5 particles (mass 0.046241) broken so far 
+ 
+ 1530000       72    1.3648191   0.35373883        6.272 
+ 1531000       72    1.3671684   0.35375291        6.272 
+ 1532000       72    1.3360043   0.36205922        6.272 
+ 1533000       72    1.3389161   0.36205922        6.272 
+ 1534000       72    1.3418692   0.36205922        6.272 
+ 1535000       72    1.3447428   0.36206104        6.272 
+ 1536000       72    1.3477711   0.36206104        6.272 
+ 1537000       72    1.3508408   0.36206104        6.272 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1537575
+ - a total of 6 particles (mass 0.047453) broken so far 
+ 
+Particle breakage: broke 1 particles (mass 0.001212) at step 1537870
+ - a total of 7 particles (mass 0.048665) broken so far 
+ 
+ 1538000       70    1.3311345   0.35984614        6.272 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1538409
+ - a total of 8 particles (mass 0.049090) broken so far 
+ 
+ 1539000       69    1.3334121   0.35984614        6.272 
+ 1540000       69    1.3365122   0.35984614        6.272 
+ 1541000       69    1.3394766   0.35987745        6.272 
+ 1542000       69    1.1847517   0.26053229        6.272 
+ 1543000       69    1.1898863   0.26053229        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1543723
+ - a total of 9 particles (mass 0.071180) broken so far 
+ 
+ 1544000       68    1.1598372   0.25306845        6.272 
+ 1545000       68    1.1648053   0.25306845        6.272 
+ 1546000       68    1.1698125   0.25306845        6.272 
+ 1547000       68    1.1748587   0.25306845        6.272 
+ 1548000       68    1.1759243   0.25221367        6.272 
+ 1549000       68    1.1808317   0.25216295        6.272 
+ 1550000       68     1.185995   0.25216295        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1550575
+ - a total of 10 particles (mass 0.093269) broken so far 
+ 
+ 1551000       67    1.0935011   0.19993698        6.272 
+ 1552000       67    1.0981079   0.19993981        6.272 
+ 1553000       67    1.1027544   0.19993981        6.272 
+ 1554000       67    1.1074378   0.19993981        6.272 
+ 1555000       67    1.1121581   0.19993981        6.272 
+ 1556000       67    1.1169154   0.19993981        6.272 
+ 1557000       67    1.1091883   0.17979999        6.272 
+ 1558000       67    1.1141337   0.17979999        6.272 
+ 1559000       67     1.119116   0.17979999        6.272 
+ 1560000       67    1.1241341   0.17980102        6.272 
+ 1561000       67    1.1291901   0.17980102        6.272 
+ 1562000       67    1.1342823   0.17980164        6.272 
+ 1563000       67    1.1394115   0.17980202        6.272 
+ 1564000       67    1.1445775   0.17980253        6.272 
+ 1565000       67    1.1496753   0.17981827        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1565683
+ - a total of 11 particles (mass 0.115358) broken so far 
+ 
+ 1566000       66    1.0978015   0.17622698        6.272 
+ 1567000       66      1.10117   0.17632572        6.272 
+ 1568000       66    1.1060082   0.17632605        6.272 
+ 1569000       66    1.1108811   0.17632637        6.272 
+ 1570000       66     1.115773   0.17630836        6.272 
+ 1571000       66    1.1016162   0.18789756        6.272 
+ 1572000       66    1.1064071   0.18789789        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1572099
+ - a total of 12 particles (mass 0.137448) broken so far 
+ 
+ 1573000       65    1.0787681   0.17959191        6.272 
+ 1574000       65    1.0834452   0.17959224        6.272 
+ 1575000       65    1.0882582   0.17959258        6.272 
+ 1576000       65    1.0932192   0.17959291        6.272 
+ 1577000       65    1.0982149   0.17959325        6.272 
+ 1578000       65    1.1032456   0.17959334        6.272 
+ 1579000       65    1.1083112   0.17959334        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1579115
+ - a total of 13 particles (mass 0.159537) broken so far 
+ 
+ 1580000       64    1.1011485   0.17959334        6.272 
+ 1581000       64    1.1060542   0.17959334        6.272 
+ 1582000       64    1.1109926   0.17959334        6.272 
+ 1583000       64    1.1159637   0.17959334        6.272 
+ 1584000       64    1.1209674   0.17959334        6.272 
+ 1585000       64    1.1260038   0.17959334        6.272 
+ 1586000       64    1.1310728   0.17959334        6.272 
+ 1587000       64    1.1361745   0.17959334        6.272 
+ 1588000       64    1.1413088   0.17959334        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1588206
+ - a total of 14 particles (mass 0.181626) broken so far 
+ 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1588258
+ - a total of 15 particles (mass 0.203716) broken so far 
+ 
+ 1589000       62    1.0581673   0.16478779        6.272 
+ 1590000       62    1.0626665   0.16478779        6.272 
+ 1591000       62     1.067194   0.16478779        6.272 
+ 1592000       62    1.0717499   0.16478779        6.272 
+ 1593000       62    1.0763343   0.16478779        6.272 
+ 1594000       62    1.0452323   0.17342839        6.272 
+ 1595000       62    1.0494513   0.17342839        6.272 
+ 1596000       62    1.0536988   0.17342839        6.272 
+ 1597000       62     1.057599   0.17343399        6.272 
+ 1598000       62    1.0618927   0.17343399        6.272 
+ 1599000       62    1.0662148   0.17343399        6.272 
+ 1600000       62    1.0705653   0.17343399        6.272 
+to be inserted: n = 0 
+INFO: Particle insertion insertion: inserted 18 particle templates (mass 0.397608) at step 1601000
+ - a total of 90 particle templates (mass 1.988039) inserted so far [ nlocal = 0 ].
+ 1601000       80    1.2737481   0.17343399        6.272 
+ 1602000       80    1.2781554   0.17343399        6.272 
+ 1603000       80    1.2825911   0.17343399        6.272 
+ 1604000       80    1.2544304   0.18199055        6.272 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1604733
+ - a total of 16 particles (mass 0.204141) broken so far 
+ 
+ 1605000       79    1.2574901   0.18146528        6.272 
+ 1606000       79    1.2615969   0.18146528        6.272 
+ 1607000       79    1.2657321   0.18146528        6.272 
+ 1608000       79    1.2698207    0.1814659        6.272 
+ 1609000       79    1.2740049    0.1814659        6.272 
+ 1610000       79    1.2782175    0.1814659        6.272 
+ 1611000       79    1.2780858   0.18134171        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1611040
+ - a total of 17 particles (mass 0.226230) broken so far 
+ 
+ 1612000       78    1.2384028    0.1760286        6.272 
+ 1613000       78    1.2257892   0.18612351        6.272 
+ 1614000       78    1.2295309   0.18612351        6.272 
+ 1615000       78    1.2332989   0.18612351        6.272 
+ 1616000       78    1.2371146   0.18615035        6.272 
+ 1617000       78    1.2411364   0.18615391        6.272 
+ 1618000       78    1.2439733   0.18618511        6.272 
+ 1619000       78    1.2480467   0.18618511        6.272 
+ 1620000       78    1.2521485   0.18618511        6.272 
+Particle breakage: broke 1 particles (mass 0.000425) at step 1620287
+ - a total of 18 particles (mass 0.226655) broken so far 
+ 
+ 1621000       77    1.2558687   0.18618311        6.272 
+ 1622000       77    1.2600216   0.18618311        6.272 
+ 1623000       77    1.2642028   0.18618311        6.272 
+ 1624000       77    1.2685208    0.1861914        6.272 
+ 1625000       77    1.2729732    0.1861914        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1625955
+ - a total of 19 particles (mass 0.248745) broken so far 
+ 
+ 1626000       76    1.2456832    0.1775508        6.272 
+ 1627000       76    1.2500307    0.1775508        6.272 
+ 1628000       76    1.2544066    0.1775508        6.272 
+ 1629000       76    1.2588109    0.1775508        6.272 
+ 1630000       76    1.2632434    0.1775508        6.272 
+ 1631000       76    1.2677043    0.1775508        6.272 
+ 1632000       76    1.2721935    0.1775508        6.272 
+ 1633000       76     1.276711    0.1775508        6.272 
+ 1634000       76    1.2812569    0.1775508        6.272 
+ 1635000       76    1.2859489    0.1775508        6.272 
+ 1636000       76    1.2744281   0.16201401        6.272 
+ 1637000       76    1.2795203   0.16201401        6.272 
+ 1638000       76    1.2847617   0.16201401        6.272 
+ 1639000       76    1.2890369   0.16202811        6.272 
+ 1640000       76    1.2943211   0.16202811        6.272 
+ 1641000       76    1.2996379   0.16202811        6.272 
+ 1642000       76    1.3049873   0.16202811        6.272 
+Particle breakage: broke 1 particles (mass 0.022089) at step 1642349
+ - a total of 20 particles (mass 0.270834) broken so far 
+ 
+ 1643000       75    1.0347124   0.13896353        6.272 
+ 1644000       75    1.0391352   0.13896353        6.272 
+ 1645000       75    1.0435885   0.13896353        6.272 
+ 1646000       75    1.0480722   0.13896353        6.272 
+ 1647000       75    1.0525864   0.13

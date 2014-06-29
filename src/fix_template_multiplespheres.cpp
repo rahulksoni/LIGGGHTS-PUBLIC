@@ -490,12 +490,21 @@ void FixTemplateMultiplespheres::init_ptilist(int n_random_max)
 	{
 		if(screen) fprintf(screen ,"\n ===>>> TMS: init_ptilist(int n_random_max). \n");
 		if(logfile) fprintf(logfile ,"\n ===>>> TMS: init_ptilist(int n_random_max). \n");
+
+		if(screen) fprintf(screen ,"\n TMS: n_random_max = %d \n", n_random_max);
+		if(logfile) fprintf(logfile ,"\n TMS: n_random_max = %d \n", n_random_max);
+
+		if(screen) fprintf(screen ,"\n TMS: sizeof(ParticleToInsert*) = %d \n", sizeof(ParticleToInsert*));
+		if(logfile) fprintf(logfile ,"\n TMS: sizeof(ParticleToInsert*) = %d \n", sizeof(ParticleToInsert*));
 		
 		if(pti_list) error->all(FLERR,"invalid FixTemplateSphere::init_list()");
 		n_pti_max = n_random_max;
 		pti_list = (ParticleToInsert**) memory->smalloc(n_pti_max*sizeof(ParticleToInsert*),"pti_list");
 		for(int i = 0; i < n_pti_max; i++)
 		   pti_list[i] = new ParticleToInsert(lmp,nspheres);
+
+		if(screen) fprintf(screen ,"\n TMS: nspheres = %d \n", nspheres);
+		if(logfile) fprintf(logfile ,"\n TMS: nspheres = %d \n", nspheres);
 		   
 		if(screen) fprintf(screen ,"\n <<<=== TMS: init_ptilist(int n_random_max). \n");
 		if(logfile) fprintf(logfile ,"\n <<<=== TMS: init_ptilist(int n_random_max). \n");   
@@ -508,9 +517,11 @@ void FixTemplateMultiplespheres::randomize_ptilist(int n_random,int distribution
 	{
 		
 	if(screen) fprintf(screen ,"\n ===>>> TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");
-		if(logfile) fprintf(logfile ,"\n ===>>> TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");
+	if(logfile) fprintf(logfile ,"\n ===>>> TMS: randomize_ptilist(int n_random,int distribution_groupbit). \n");
 		
-		
+		if(screen) fprintf(screen ,"\n TMS: n_random = %d \n", n_random);
+		if(logfile) fprintf(logfile ,"\n TMS: n_random = %d \n", n_random);
+
 		for(int i = 0; i < n_random; i++)
 			{
 	//			if(screen) fprintf(screen ,"\n ===>>> TMS: randomize_ptilist(int n_random,int distribution_groupbit): 1 n_random = %d, i = %d \n",n_random,i);

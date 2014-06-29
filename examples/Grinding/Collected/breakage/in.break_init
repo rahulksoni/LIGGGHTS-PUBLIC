@@ -1,0 +1,73 @@
+
+atom_style	granular
+atom_modify	map array
+boundary	f f f
+newton		off
+
+communicate	single vel yes
+
+units		si
+
+processors 	* * *
+
+region		reg block -0.2 0.2 -0.1 0.1  0.0 1. units box
+create_box	1 reg
+
+neighbor	0.01 bin
+neigh_modify	delay 0
+
+#Material properties required for new pair styles
+
+fix 		m1 all property/global youngsModulus peratomtype 5.e6
+fix 		m2 all property/global poissonsRatio peratomtype 0.45
+fix 		m3 all property/global coefficientRestitution peratomtypepair 1 0.6
+fix 		m4 all property/global coefficientFriction peratomtypepair 1 0.5
+fix 		m5 all property/global characteristicVelocity scalar 2.
+
+#New pair style
+pair_style 	gran/hertz/history 
+pair_coeff	* *
+
+timestep	0.000001
+
+fix		gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+#walls
+#fix		xwalls all wall/gran/hertz/history 1 0 xplane -0.2 0.2 1
+#fix		ywalls all wall/gran/hertz/history 1 0 yplane -0.1 0.1 1
+#fix		zwalls all wall/gran/hertz/history 1 0 zplane  0.0 1.0 1
+fix		boxwalls_x1 all wall/gran/hertz/history primitive type 1 xplane -0.2
+fix		boxwalls_x2 all wall/gran/hertz/history primitive type 1 xplane +0.2
+fix		boxwalls_y1 all wall/gran/hertz/history primitive type 1 yplane -0.1
+fix		boxwalls_y2 all wall/gran/hertz/history primitive type 1 yplane +0.1
+fix		boxwalls_z1 all wall/gran/hertz/history primitive type 1 zplane -0.0
+fix		boxwalls_z2 all wall/gran/hertz/history primitive type 1 zplane +1.0
+
+#particle distributions
+fix		pts1 all particletemplate/sphere 1 atom_type 1 density constant 2500 radius constant 0.01
+fix		pts2 all particletemplate/sphere 1 atom_type 1 density constant 2500 radius constant 0.025
+fix		pdd1 all particledistribution/discrete 1.  2 pts1 0.4 pts2 0.6
+
+#particle insertion
+fix		ins all insert/pack seed 100001 distributiontemplate pdd1 &
+		insert_every once overlapcheck yes all_in yes volumefraction_region 0.3 region reg ntry_mc 10000
+
+#apply nve integration
+fix		integr all nve/sphere
+
+#output settings, include total thermal energy
+compute		1 all erotate/sphere
+thermo_style	custom step atoms ke c_1 vol
+thermo		1000
+thermo_modify	lost ignore norm no
+compute_modify	thermo_temp dynamic yes
+
+#insert the first particles so that dump is not empty
+run		1
+dump		dmp all custom 100 post/dump*.break id type type x y z ix iy iz vx vy vz fx fy fz omegax omegay omegaz radius
+
+#insert particles
+run		500000 upto
+
+write_restart	packing.restart
+

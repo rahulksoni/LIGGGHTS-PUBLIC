@@ -346,6 +346,9 @@ void FixParticledistributionDiscrete::random_init_list(int ntotal)
 
     ntotal += 2 * ntemplates;
 
+    if(screen) fprintf(screen ,"\n PDD: ntotal = %d \n", ntotal);
+	if(logfile) fprintf(logfile ,"\n PDD: ntotal = %d \n", ntotal);
+
     // number of requested pti
     n_pti_max_requested = 0;
 
@@ -354,12 +357,16 @@ void FixParticledistributionDiscrete::random_init_list(int ntotal)
 			parttogen_max_i = static_cast<int>(static_cast<double>(ntotal) * distweight[i] + static_cast<double>(1.01)*(ntemplates+nprocs));
 			n_pti_max_requested += parttogen_max_i;
 
+			if(screen) fprintf(screen ,"\n PDD: parttogen_max_i = %d \n", parttogen_max_i);
+			if(logfile) fprintf(logfile ,"\n PDD: parttogen_max_i = %d \n", parttogen_max_i);
+
 			// re-allocated if need more ptis in this template than allocated so far
 			if(parttogen_max_i > templates[i]->n_pti_max)
 				{
 					templates[i]->delete_ptilist();
 					templates[i]->init_ptilist(parttogen_max_i);
 				}
+			
 		}
 
     // re-allocate if need more total ptis in distribution than allocated so far
@@ -397,6 +404,9 @@ int FixParticledistributionDiscrete::randomize_list(int ntotal,int insert_groupb
 
 		ninsert = ntotal;
 		ninserted = 0;
+
+		if(screen) fprintf(screen ,"\n PDD: ninsert = %d \n", ninsert);
+		if(logfile) fprintf(logfile ,"\n PDD: ninsert = %d \n", ninsert);
 
 		// use random generator so long-time average of insertion will represent distribution correctly
 		if(exact_number == 0)
@@ -446,6 +456,10 @@ int FixParticledistributionDiscrete::randomize_list(int ntotal,int insert_groupb
 		for(int i = 0; i < ntemplates; i++)
 		{
 			ninsert += parttogen[i];
+
+			if(screen) fprintf(screen ,"\n PDD: parttogen[i] = %d \n", parttogen[i]);
+			if(logfile) fprintf(logfile ,"\n PDD: parttogen[i] = %d \n", parttogen[i]);
+
 			templates[i]->randomize_ptilist(parttogen[i],groupbit | insert_groupbit);
 		}
 
@@ -484,6 +498,9 @@ int FixParticledistributionDiscrete::insert(int n)
 	if(screen) fprintf(screen ,"\n ===>>> PDD:  insert(int n) \n");
 	if(logfile) fprintf(logfile ,"\n ===>>> PDD:  insert(int n) \n");
 	
+	if(screen) fprintf(screen ,"\n PDD: n = %d \n", n);
+    if(logfile) fprintf(logfile ,"\n PDD: n = %d \n", n);
+
     int ninserted_spheres_local = 0;
     
     if(screen) fprintf(screen, "to be inserted: n = %d \n", n);
@@ -491,8 +508,10 @@ int FixParticledistributionDiscrete::insert(int n)
     
     for(int i = 0; i < n; i++)
     {
-        
         ninserted_spheres_local += pti_list[i]->insert();
+        if(screen) fprintf(screen ,"\n PDD: ninserted_spheres_local = %d \n", ninserted_spheres_local);
+    	if(logfile) fprintf(logfile ,"\n PDD: ninserted_spheres_local = %d \n", ninserted_spheres_local);
+
     }
     
     

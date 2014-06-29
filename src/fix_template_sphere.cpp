@@ -364,6 +364,10 @@ void FixTemplateSphere::delete_ptilist()
 {
 	if(screen) fprintf(screen ,"\n ===>>> TS:  delete_ptilist() \n");
 	if(logfile) fprintf(logfile ,"\n ===>>> TS:  delete_ptilist() \n");
+    
+	if(screen) fprintf(screen ,"\n <<<=== TS:  delete_ptilist() \n");
+	if(logfile) fprintf(logfile ,"\n <<<=== TS:  delete_ptilist() \n"); 
+
     if(n_pti_max == 0) return;
 
     for(int i = 0; i < n_pti_max; i++)
@@ -373,7 +377,7 @@ void FixTemplateSphere::delete_ptilist()
     pti_list = NULL;
     n_pti_max = 0;
     
-   if(screen) fprintf(screen ,"\n <<<=== TS:  delete_ptilist() \n");
+    if(screen) fprintf(screen ,"\n <<<=== TS:  delete_ptilist() \n");
 	if(logfile) fprintf(logfile ,"\n <<<=== TS:  delete_ptilist() \n"); 
 }
 
