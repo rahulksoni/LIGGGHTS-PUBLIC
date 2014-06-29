@@ -36,7 +36,7 @@ class FixInsert : public Fix {
 	  ~FixInsert();
 
 	  int ECS_flag = 0;		//This flag if set to 1 will direct the algorithm to break particle based on ECS//
-	  int ninsert_daughter;
+	  int ninsert_daughter = 0;
 	
 	  virtual int setmask();
 	  virtual void init();
